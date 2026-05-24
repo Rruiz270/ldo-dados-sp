@@ -134,19 +134,24 @@ export default async function MunicipioPage({ params }: PageProps) {
   if (!municipio) {
     return (
       <div className="max-w-7xl mx-auto px-6 py-16">
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-6">
-          <h2 className="text-xl font-semibold text-amber-900 mb-2">
-            Município não encontrado no banco
+        <div className="bg-red-50 border border-red-200 rounded-xl p-6">
+          <h2 className="text-xl font-semibold text-red-900 mb-2">
+            Código IBGE inválido
           </h2>
-          <p className="text-amber-800 text-sm">
-            Código IBGE <code className="bg-amber-100 px-1 rounded">{cod}</code> não existe na base
-            ou o seed ainda não foi rodado. Execute{" "}
-            <code className="bg-amber-100 px-1 rounded">npm run db:migrate &amp;&amp; npm run db:seed</code>.
+          <p className="text-red-800 text-sm">
+            <code className="bg-red-100 px-1 rounded">{cod}</code> não corresponde a nenhum dos 645
+            municípios paulistas. <a href={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/`} className="underline">Voltar para a busca</a>.
           </p>
         </div>
       </div>
     );
   }
+
+  // Calcular stats de cobertura pra mostrar no header
+  const pubCount = publicacoes.filter((p) => p.status === "PUBLICADO").length;
+  const ndpCount = publicacoes.filter((p) => p.status === "NAO_PUBLICADO").length;
+  const totalPub = publicacoes.length;
+  const pctPubli = totalPub > 0 ? Math.round((pubCount / totalPub) * 100) : 0;
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-8">
@@ -160,9 +165,30 @@ export default async function MunicipioPage({ params }: PageProps) {
         >
           {municipio.nome}
         </h1>
-        <div className="text-sm text-slate-600">
-          População: <strong>{municipio.populacao?.toLocaleString("pt-BR")}</strong> habitantes
-          {municipio.faixa_pop && <span className="ml-3">Faixa: {municipio.faixa_pop}</span>}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-600">
+          <span>
+            População: <strong>{municipio.populacao?.toLocaleString("pt-BR")}</strong> hab
+          </span>
+          {municipio.faixa_pop && <span>Faixa: {municipio.faixa_pop}</span>}
+          {totalPub > 0 && (
+            <span
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                pctPubli >= 80
+                  ? "bg-green-100 text-green-900"
+                  : pctPubli >= 50
+                  ? "bg-amber-100 text-amber-900"
+                  : "bg-red-100 text-red-900"
+              }`}
+              title={`${pubCount} de ${totalPub} relatórios fiscais obrigatórios publicados`}
+            >
+              {pctPubli >= 80 ? "✓" : pctPubli >= 50 ? "⚠" : "✗"} Transparência: {pctPubli}%
+            </span>
+          )}
+          {ndpCount > 0 && (
+            <span className="text-xs text-red-700">
+              {ndpCount} relatório(s) não publicados pelo município
+            </span>
+          )}
         </div>
       </header>
 

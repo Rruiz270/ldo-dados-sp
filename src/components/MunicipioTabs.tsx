@@ -118,7 +118,10 @@ function SecretarioView({ indicadores, areasFim }: { indicadores: IndicadorLRF[]
           Indicadores LRF (cumprimento de limites legais)
         </h3>
         {latest.length === 0 ? (
-          <EmptyState text="Indicadores LRF ainda não foram populados para este município." />
+          <SemDadosAviso
+            fonte="Audesp Análises (TCE-SP)"
+            descricao="Indicadores LRF — Despesa com Pessoal, Educação, Saúde, FUNDEB — são processados pelo TCE-SP a partir das peças do Audesp Fase IV enviadas pela prefeitura. Este município ainda não foi processado ou não enviou os dados."
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {latest.map((i) => (
@@ -534,6 +537,15 @@ function VereadorView({
 }
 
 function SemAreasFimAviso() {
+  return (
+    <SemDadosAviso
+      fonte="RREO Anexo 02 (SICONFI / Tesouro Nacional)"
+      descricao="Despesas por área-fim são extraídas do RREO Anexo 02 (Despesas por Função/Subfunção), que a prefeitura é obrigada a publicar bimestralmente no SICONFI por força da LRF (Art. 52). Cerca de 115 dos 645 municípios paulistas não publicam regularmente."
+    />
+  );
+}
+
+function SemDadosAviso({ fonte, descricao }: { fonte: string; descricao: string }) {
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
   const exemplos = [
     { cod: 3504503, nome: "Avaré" },
@@ -542,28 +554,24 @@ function SemAreasFimAviso() {
     { cod: 3509502, nome: "Campinas" },
   ];
   return (
-    <div className="bg-amber-50 border border-amber-200 rounded-xl p-6">
+    <div className="bg-amber-50 border border-amber-200 rounded-xl p-5">
       <div className="flex items-start gap-3">
-        <div className="text-3xl">⚠️</div>
-        <div className="flex-1">
-          <h4 className="font-semibold text-amber-900 mb-1">
-            Este município ainda não publicou o RREO Anexo 02
+        <div className="text-2xl flex-shrink-0">📭</div>
+        <div className="flex-1 min-w-0">
+          <h4 className="font-semibold text-amber-900 mb-1 text-sm">
+            Informação não disponível
           </h4>
-          <p className="text-sm text-amber-800 mb-3">
-            O município é obrigado por lei (LRF Art. 52) a publicar bimestralmente as
-            despesas por função/subfunção no SICONFI. Como não publicou, não conseguimos
-            mostrar as áreas-fim aqui. Cerca de <strong>115 dos 645</strong> municípios
-            paulistas estão nessa situação.
-          </p>
-          <div className="text-xs text-amber-700 mb-2 font-semibold">
-            Veja como fica em municípios que publicam regularmente:
+          <p className="text-xs text-amber-800 mb-3">{descricao}</p>
+          <div className="text-[10px] uppercase tracking-wide text-amber-700 mb-2 font-semibold">
+            Fonte esperada · {fonte}
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-amber-200">
+            <span className="text-[10px] text-amber-700 mr-1 uppercase tracking-wide font-semibold self-center">Veja outro município:</span>
             {exemplos.map((m) => (
               <a
                 key={m.cod}
                 href={`${basePath}/municipio/${m.cod}`}
-                className="px-3 py-1.5 bg-white border border-amber-300 rounded-lg text-xs font-medium text-amber-900 hover:bg-amber-100"
+                className="px-2 py-1 bg-white border border-amber-300 rounded text-[11px] font-medium text-amber-900 hover:bg-amber-100"
               >
                 {m.nome} →
               </a>
