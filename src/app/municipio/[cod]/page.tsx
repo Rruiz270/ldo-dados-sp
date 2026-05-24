@@ -37,6 +37,20 @@ interface DespesaFuncao {
   pct_do_total: number | null;
 }
 
+interface PublicacaoStatus {
+  dataset: string;
+  status: string;
+  atualizado_em: string;
+}
+
+interface RankingPos {
+  indicador: string;
+  posicao: number;
+  total: number;
+  valor: number;
+  exercicio: number;
+}
+
 export default async function MunicipioPage({ params }: PageProps) {
   const { cod } = await params;
   const codNum = parseInt(cod, 10);
@@ -45,6 +59,8 @@ export default async function MunicipioPage({ params }: PageProps) {
   let municipio: Municipio | null = null;
   let indicadores: IndicadorLRF[] = [];
   let areasFim: DespesaFuncao[] = [];
+  let publicacoes: PublicacaoStatus[] = [];
+  let ranking: RankingPos[] = [];
 
   try {
     const rows = (await sql`
@@ -77,6 +93,39 @@ export default async function MunicipioPage({ params }: PageProps) {
           )
         ORDER BY eh_area_fim DESC, empenhado DESC NULLS LAST
       `) as DespesaFuncao[];
+
+      publicacoes = (await sql`
+        SELECT dataset, status, atualizado_em
+        FROM publicacao_status
+        WHERE cod_ibge = ${codNum}
+        ORDER BY dataset DESC
+      `) as PublicacaoStatus[];
+
+      // Ranking estadual por indicador — posição do município no exercício mais recente
+      ranking = (await sql`
+        WITH latest AS (
+          SELECT indicador, MAX(exercicio) AS exercicio
+          FROM indicadores_lrf
+          WHERE valor IS NOT NULL
+          GROUP BY indicador
+        ),
+        ranked AS (
+          SELECT i.indicador, i.cod_ibge, i.valor, i.exercicio,
+                 RANK() OVER (
+                   PARTITION BY i.indicador
+                   ORDER BY CASE WHEN i.indicador IN ('pessoal','divida')
+                                 THEN i.valor ELSE -i.valor END ASC
+                 ) AS posicao,
+                 COUNT(*) OVER (PARTITION BY i.indicador) AS total
+          FROM indicadores_lrf i
+          JOIN latest l USING (indicador, exercicio)
+          WHERE i.valor IS NOT NULL
+        )
+        SELECT indicador, posicao::int, total::int, valor, exercicio
+        FROM ranked
+        WHERE cod_ibge = ${codNum}
+        ORDER BY indicador
+      `) as RankingPos[];
     }
   } catch {
     // banco ainda não populado
@@ -117,7 +166,13 @@ export default async function MunicipioPage({ params }: PageProps) {
         </div>
       </header>
 
-      <MunicipioTabs municipio={municipio} indicadores={indicadores} areasFim={areasFim} />
+      <MunicipioTabs
+        municipio={municipio}
+        indicadores={indicadores}
+        areasFim={areasFim}
+        publicacoes={publicacoes}
+        ranking={ranking}
+      />
     </div>
   );
 }

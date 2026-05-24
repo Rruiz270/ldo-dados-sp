@@ -28,21 +28,24 @@ export default async function Home() {
     <div>
       {/* Hero */}
       <section
-        className="text-white py-16"
-        style={{ background: "linear-gradient(135deg, #061840 0%, #0A2463 100%)" }}
+        className="text-white py-12 md:py-20"
+        style={{ background: "linear-gradient(135deg, #061840 0%, #0A2463 60%, #1a3a7a 100%)" }}
       >
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="max-w-5xl mx-auto px-6">
+          <div className="text-xs font-semibold uppercase tracking-widest text-cyan-300 mb-3">
+            Instituto i10 · transparência fiscal
+          </div>
           <h1
-            className="text-5xl font-bold mb-3 leading-tight"
+            className="text-4xl md:text-5xl font-bold mb-4 leading-tight"
             style={{ fontFamily: "var(--font-display)" }}
           >
-            Acompanhe as metas fiscais
-            <br />
-            dos <span style={{ color: "#00E5A0" }}>645 municípios</span> de SP
+            Acompanhe as <span style={{ color: "#00E5A0" }}>metas fiscais</span>
+            <br className="hidden md:block" />
+            dos 645 municípios de SP
           </h1>
-          <p className="text-lg text-cyan-100 max-w-2xl mb-8">
-            Indicadores LRF, evolução temporal, comparação entre prefeituras e
-            exportação para PDF/Excel — tudo derivado direto das fontes oficiais.
+          <p className="text-base md:text-lg text-cyan-100 max-w-2xl mb-8">
+            Indicadores LRF, despesas por área-fim, comparação entre prefeituras e
+            exportação para PDF/Excel — direto das fontes oficiais (Tesouro Nacional e TCE-SP).
           </p>
           <MunicipioSearch municipios={municipios} />
         </div>
