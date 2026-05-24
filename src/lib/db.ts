@@ -1,28 +1,22 @@
-import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
+import postgres from "postgres";
 
-let _sql: NeonQueryFunction<false, false> | null = null;
-
-function getSql(): NeonQueryFunction<false, false> {
-  if (_sql) return _sql;
-  const url = process.env.DATABASE_URL;
-  if (!url) throw new Error("DATABASE_URL is not set");
-  _sql = neon(url);
-  return _sql;
+declare global {
+  // Em dev, reusa a mesma conexão entre hot-reloads pra não esgotar pool.
+  // eslint-disable-next-line no-var
+  var _pgClient: ReturnType<typeof postgres> | undefined;
 }
 
-// Proxy para `import { sql } from "@/lib/db"` funcionar como tagged template,
-// mas só exige DATABASE_URL na primeira query (lazy).
-export const sql: NeonQueryFunction<false, false> = new Proxy(
-  (() => {}) as unknown as NeonQueryFunction<false, false>,
-  {
-    apply(_t, _ta, args) {
-      return (getSql() as unknown as (...a: unknown[]) => unknown)(...args);
-    },
-    get(_t, prop) {
-      return (getSql() as unknown as Record<string | symbol, unknown>)[prop];
-    },
-  },
-);
+function makeClient() {
+  const url = process.env.DATABASE_URL;
+  if (!url) throw new Error("DATABASE_URL is not set");
+  // prepare:false → compatível com PgBouncer/pooler que o Neon usa.
+  return postgres(url, { prepare: false, max: 5, idle_timeout: 20 });
+}
+
+export const sql = globalThis._pgClient ?? makeClient();
+if (process.env.NODE_ENV !== "production") {
+  globalThis._pgClient = sql;
+}
 
 // Tipos canônicos do domínio
 export interface Municipio {
@@ -37,11 +31,12 @@ export interface IndicadorLRF {
   cod_ibge: number;
   exercicio: number;
   periodo: number;
-  periodicidade: "B" | "Q";
-  indicador: "pessoal" | "divida" | "educacao" | "saude" | "rcl";
+  periodicidade: "A" | "B" | "Q";
+  indicador: "pessoal" | "educacao" | "saude" | "fundeb" | "fundeb_profissionais" | "resultado_execucao";
   valor: number;
-  limite_legal: number;
-  pct_do_limite: number;
+  base_calculo: number | null;
+  limite_legal: number | null;
+  pct_do_limite: number | null;
   fonte: "RREO" | "RGF" | "DCA" | "Audesp";
   atualizado_em: string;
 }
