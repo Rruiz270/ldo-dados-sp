@@ -18,10 +18,23 @@ interface IndicadorLRF {
   indicador: string;
   exercicio: number;
   periodo: number;
+  periodicidade: string;
   valor: number;
   limite_legal: number;
   pct_do_limite: number;
   fonte: string;
+}
+
+interface DespesaFuncao {
+  funcao: string;
+  exercicio: number;
+  periodo: number;
+  eh_area_fim: boolean;
+  dotacao_inicial: number | null;
+  dotacao_atualizada: number | null;
+  empenhado: number | null;
+  liquidado: number | null;
+  pct_do_total: number | null;
 }
 
 export default async function MunicipioPage({ params }: PageProps) {
@@ -31,6 +44,7 @@ export default async function MunicipioPage({ params }: PageProps) {
 
   let municipio: Municipio | null = null;
   let indicadores: IndicadorLRF[] = [];
+  let areasFim: DespesaFuncao[] = [];
 
   try {
     const rows = (await sql`
@@ -40,11 +54,29 @@ export default async function MunicipioPage({ params }: PageProps) {
     municipio = rows[0] ?? null;
     if (municipio) {
       indicadores = (await sql`
-        SELECT indicador, exercicio, periodo, valor, limite_legal, pct_do_limite, fonte
+        SELECT indicador, exercicio, periodo, periodicidade, valor, limite_legal, pct_do_limite, fonte
         FROM indicadores_lrf
         WHERE cod_ibge = ${codNum}
         ORDER BY exercicio DESC, periodo DESC
       `) as IndicadorLRF[];
+
+      // Pega o ano mais recente que tem despesas por função (preferencialmente
+      // bimestre mais alto), pra ter dados mais frescos.
+      areasFim = (await sql`
+        SELECT funcao, exercicio, periodo, eh_area_fim,
+               dotacao_inicial, dotacao_atualizada, empenhado, liquidado, pct_do_total
+        FROM despesa_por_funcao
+        WHERE cod_ibge = ${codNum}
+          AND (exercicio, periodo) = (
+            SELECT exercicio, MAX(periodo)
+            FROM despesa_por_funcao
+            WHERE cod_ibge = ${codNum}
+            GROUP BY exercicio
+            ORDER BY exercicio DESC
+            LIMIT 1
+          )
+        ORDER BY eh_area_fim DESC, empenhado DESC NULLS LAST
+      `) as DespesaFuncao[];
     }
   } catch {
     // banco ainda não populado
@@ -85,7 +117,7 @@ export default async function MunicipioPage({ params }: PageProps) {
         </div>
       </header>
 
-      <MunicipioTabs municipio={municipio} indicadores={indicadores} />
+      <MunicipioTabs municipio={municipio} indicadores={indicadores} areasFim={areasFim} />
     </div>
   );
 }

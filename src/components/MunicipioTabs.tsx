@@ -13,10 +13,23 @@ interface IndicadorLRF {
   indicador: string;
   exercicio: number;
   periodo: number;
+  periodicidade: string;
   valor: number;
   limite_legal: number;
   pct_do_limite: number;
   fonte: string;
+}
+
+interface DespesaFuncao {
+  funcao: string;
+  exercicio: number;
+  periodo: number;
+  eh_area_fim: boolean;
+  dotacao_inicial: number | null;
+  dotacao_atualizada: number | null;
+  empenhado: number | null;
+  liquidado: number | null;
+  pct_do_total: number | null;
 }
 
 type Tab = "secretario" | "prefeito" | "vereador";
@@ -30,9 +43,11 @@ const TABS: { id: Tab; label: string; emoji: string; subtitle: string }[] = [
 export function MunicipioTabs({
   municipio,
   indicadores,
+  areasFim,
 }: {
   municipio: Municipio;
   indicadores: IndicadorLRF[];
+  areasFim: DespesaFuncao[];
 }) {
   const [tab, setTab] = useState<Tab>("secretario");
 
@@ -63,24 +78,132 @@ export function MunicipioTabs({
         {TABS.find((t) => t.id === tab)?.subtitle}
       </div>
 
-      {tab === "secretario" && <SecretarioView indicadores={indicadores} />}
+      {tab === "secretario" && <SecretarioView indicadores={indicadores} areasFim={areasFim} />}
       {tab === "prefeito" && <PrefeitoView indicadores={indicadores} />}
       {tab === "vereador" && <VereadorView indicadores={indicadores} />}
     </div>
   );
 }
 
-function SecretarioView({ indicadores }: { indicadores: IndicadorLRF[] }) {
-  // Filtra indicadores mais recentes por tipo
+function SecretarioView({ indicadores, areasFim }: { indicadores: IndicadorLRF[]; areasFim: DespesaFuncao[] }) {
   const latest = pickLatest(indicadores);
-  if (latest.length === 0) {
-    return <EmptyState text="Indicadores LRF ainda não foram populados para este município." />;
-  }
+  const areasFimOnly = areasFim.filter((a) => a.eh_area_fim);
+  const areasMeio = areasFim.filter((a) => !a.eh_area_fim);
+  const refYear = areasFim[0]?.exercicio;
+  const refPer = areasFim[0]?.periodo;
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      {latest.map((i) => (
-        <LrfCard key={i.indicador} indicador={i} />
-      ))}
+    <div className="space-y-10">
+      {/* Indicadores LRF */}
+      <section>
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 mb-3">
+          Indicadores LRF (cumprimento de limites legais)
+        </h3>
+        {latest.length === 0 ? (
+          <EmptyState text="Indicadores LRF ainda não foram populados para este município." />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {latest.map((i) => (
+              <LrfCard key={i.indicador} indicador={i} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Áreas-fim */}
+      <section>
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 mb-1">
+          Despesas por área-fim
+          {refYear && (
+            <span className="ml-2 text-xs normal-case text-slate-400">
+              · RREO {refYear}/B{refPer}
+            </span>
+          )}
+        </h3>
+        <p className="text-xs text-slate-500 mb-4 italic">
+          Para cada secretaria/área que presta serviço direto à população: meta (dotação inicial da LOA), executado e % de execução.
+        </p>
+        {areasFimOnly.length === 0 ? (
+          <EmptyState text="Despesas por função ainda não publicadas para este município." />
+        ) : (
+          <AreasFimTable areas={areasFimOnly} />
+        )}
+      </section>
+
+      {/* Áreas-meio (recolhível) */}
+      {areasMeio.length > 0 && (
+        <section>
+          <details>
+            <summary className="cursor-pointer text-sm font-semibold uppercase tracking-wide text-slate-500 hover:text-slate-700">
+              Áreas-meio (legislativa, administração, encargos) — {areasMeio.length} funções
+            </summary>
+            <div className="mt-4">
+              <AreasFimTable areas={areasMeio} />
+            </div>
+          </details>
+        </section>
+      )}
+    </div>
+  );
+}
+
+function AreasFimTable({ areas }: { areas: DespesaFuncao[] }) {
+  const fmtBRL = (v: number | null) => {
+    if (v == null) return "—";
+    const n = Number(v);
+    if (n >= 1e9) return `R$ ${(n / 1e9).toFixed(2)} bi`;
+    if (n >= 1e6) return `R$ ${(n / 1e6).toFixed(2)} mi`;
+    if (n >= 1e3) return `R$ ${(n / 1e3).toFixed(1)} mil`;
+    return `R$ ${n.toFixed(0)}`;
+  };
+  const pctExec = (a: DespesaFuncao) => {
+    if (!a.dotacao_inicial || !a.liquidado) return null;
+    return (Number(a.liquidado) / Number(a.dotacao_inicial)) * 100;
+  };
+  return (
+    <div className="overflow-hidden border border-slate-200 rounded-xl bg-white">
+      <table className="w-full text-sm">
+        <thead className="bg-slate-50 text-slate-600">
+          <tr>
+            <th className="text-left px-4 py-3 font-semibold">Área-fim</th>
+            <th className="text-right px-4 py-3 font-semibold">Meta (Dotação)</th>
+            <th className="text-right px-4 py-3 font-semibold">Empenhado</th>
+            <th className="text-right px-4 py-3 font-semibold">Liquidado</th>
+            <th className="text-right px-4 py-3 font-semibold">% Execução</th>
+            <th className="text-right px-4 py-3 font-semibold">% Orçamento</th>
+          </tr>
+        </thead>
+        <tbody>
+          {areas.map((a) => {
+            const exec = pctExec(a);
+            const cor = exec == null ? "#94A3B8"
+              : exec >= 95 ? "#00C48A"
+              : exec >= 80 ? "#00B4D8"
+              : exec >= 60 ? "#f59e0b"
+              : "#dc2626";
+            return (
+              <tr key={a.funcao} className="border-t border-slate-100 hover:bg-slate-50">
+                <td className="px-4 py-3 font-medium text-slate-900">{a.funcao}</td>
+                <td className="px-4 py-3 text-right text-slate-700">{fmtBRL(a.dotacao_inicial)}</td>
+                <td className="px-4 py-3 text-right text-slate-700">{fmtBRL(a.empenhado)}</td>
+                <td className="px-4 py-3 text-right text-slate-700">{fmtBRL(a.liquidado)}</td>
+                <td className="px-4 py-3 text-right">
+                  {exec == null ? (
+                    <span className="text-slate-400">—</span>
+                  ) : (
+                    <span className="font-semibold" style={{ color: cor }}>
+                      {exec.toFixed(1)}%
+                    </span>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-right text-slate-500">
+                  {a.pct_do_total != null ? `${Number(a.pct_do_total).toFixed(1)}%` : "—"}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }
