@@ -1,0 +1,160 @@
+"use client";
+
+import { useState } from "react";
+import { lrfColor } from "@/lib/theme";
+
+interface Municipio {
+  cod_ibge: number;
+  nome: string;
+  populacao: number;
+}
+
+interface IndicadorLRF {
+  indicador: string;
+  exercicio: number;
+  periodo: number;
+  valor: number;
+  limite_legal: number;
+  pct_do_limite: number;
+  fonte: string;
+}
+
+type Tab = "secretario" | "prefeito" | "vereador";
+
+const TABS: { id: Tab; label: string; emoji: string; subtitle: string }[] = [
+  { id: "secretario", label: "Secretário", emoji: "🔵", subtitle: "Visão técnica e projeção" },
+  { id: "prefeito", label: "Prefeito", emoji: "🟢", subtitle: "Narrativa executiva" },
+  { id: "vereador", label: "Vereador", emoji: "🟠", subtitle: "Fiscalização e evidência" },
+];
+
+export function MunicipioTabs({
+  municipio,
+  indicadores,
+}: {
+  municipio: Municipio;
+  indicadores: IndicadorLRF[];
+}) {
+  const [tab, setTab] = useState<Tab>("secretario");
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex gap-2 bg-slate-100 p-1 rounded-xl">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
+                tab === t.id ? "bg-white shadow text-slate-900" : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              <span className="mr-2">{t.emoji}</span>
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <ExportButton format="xlsx" cod={municipio.cod_ibge} label="📥 Excel" />
+          <ExportButton format="pdf" cod={municipio.cod_ibge} label="📥 PDF" />
+        </div>
+      </div>
+
+      <div className="text-sm text-slate-500 mb-6 italic">
+        {TABS.find((t) => t.id === tab)?.subtitle}
+      </div>
+
+      {tab === "secretario" && <SecretarioView indicadores={indicadores} />}
+      {tab === "prefeito" && <PrefeitoView indicadores={indicadores} />}
+      {tab === "vereador" && <VereadorView indicadores={indicadores} />}
+    </div>
+  );
+}
+
+function SecretarioView({ indicadores }: { indicadores: IndicadorLRF[] }) {
+  // Filtra indicadores mais recentes por tipo
+  const latest = pickLatest(indicadores);
+  if (latest.length === 0) {
+    return <EmptyState text="Indicadores LRF ainda não foram populados para este município." />;
+  }
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {latest.map((i) => (
+        <LrfCard key={i.indicador} indicador={i} />
+      ))}
+    </div>
+  );
+}
+
+function PrefeitoView({ indicadores }: { indicadores: IndicadorLRF[] }) {
+  return (
+    <EmptyState
+      text="Modo Prefeito — em construção (V1). Vai trazer: ranking estadual, comparação histórica com gestões anteriores, lista de 'vitórias' do exercício."
+    />
+  );
+}
+
+function VereadorView({ indicadores }: { indicadores: IndicadorLRF[] }) {
+  return (
+    <EmptyState
+      text="Modo Vereador — em construção (V1). Vai trazer: tabela meta vs realizado, histórico de alterações orçamentárias, fonte de cada número com timestamp, export pronto pra ofício."
+    />
+  );
+}
+
+function LrfCard({ indicador }: { indicador: IndicadorLRF }) {
+  const color = lrfColor(indicador.pct_do_limite);
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+      <div className="text-xs uppercase tracking-wide text-slate-500 mb-1">
+        {indicador.indicador}
+      </div>
+      <div className="text-3xl font-bold" style={{ color: "#0A2463" }}>
+        {indicador.pct_do_limite.toFixed(1)}%
+      </div>
+      <div className="text-xs text-slate-500 mb-3">
+        limite legal: {indicador.limite_legal.toFixed(1)}%
+      </div>
+      <div className="w-full bg-slate-100 rounded-full h-2">
+        <div
+          className="h-2 rounded-full"
+          style={{ width: `${Math.min(100, indicador.pct_do_limite)}%`, background: color }}
+        />
+      </div>
+      <div className="mt-2 text-[10px] text-slate-400">
+        {indicador.fonte} · {indicador.exercicio}/Q{indicador.periodo}
+      </div>
+    </div>
+  );
+}
+
+function EmptyState({ text }: { text: string }) {
+  return (
+    <div className="bg-slate-50 border border-dashed border-slate-300 rounded-xl p-8 text-center text-slate-600 text-sm">
+      {text}
+    </div>
+  );
+}
+
+function ExportButton({ format, cod, label }: { format: "pdf" | "xlsx"; cod: number; label: string }) {
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+  return (
+    <a
+      href={`${basePath}/api/export/${cod}/${format}`}
+      className="px-3 py-2 rounded-lg text-xs font-semibold border border-slate-300 hover:bg-slate-50 text-slate-700"
+    >
+      {label}
+    </a>
+  );
+}
+
+function pickLatest(indicadores: IndicadorLRF[]): IndicadorLRF[] {
+  const map = new Map<string, IndicadorLRF>();
+  for (const i of indicadores) {
+    const existing = map.get(i.indicador);
+    if (!existing || i.exercicio > existing.exercicio ||
+        (i.exercicio === existing.exercicio && i.periodo > existing.periodo)) {
+      map.set(i.indicador, i);
+    }
+  }
+  return Array.from(map.values());
+}
