@@ -97,6 +97,12 @@ export default async function MunicipioPage({ params }: PageProps) {
         ORDER BY eh_area_fim DESC, empenhado DESC NULLS LAST
       `) as DespesaFuncao[];
 
+      // Filtro outliers conhecidos: FUNDEB com valores > 500% só aparece em 2016
+      // (schema antigo do TCE-SP onde campo era valor absoluto, não %)
+      indicadores = indicadores.filter(
+        (i) => !(i.indicador.startsWith("fundeb") && Number(i.valor) > 500),
+      );
+
       publicacoes = (await sql`
         SELECT dataset, status, atualizado_em
         FROM publicacao_status
@@ -156,6 +162,40 @@ export default async function MunicipioPage({ params }: PageProps) {
   const totalPub = publicacoes.length;
   const pctPubli = totalPub > 0 ? Math.round((pubCount / totalPub) * 100) : 0;
 
+  // Período mais recente que esse município tem em despesa_por_funcao
+  // (e quanto a "rede" tem — pra disclaimer "outros já têm mais recente")
+  let periodoInfo: {
+    ano: number | null;
+    bim: number | null;
+    munisComEsteAno: number;
+    munisComAnoMaisRecente: number;
+    proxAno: number | null;
+  } = { ano: null, bim: null, munisComEsteAno: 0, munisComAnoMaisRecente: 0, proxAno: null };
+
+  if (areasFim.length > 0) {
+    const ano = areasFim[0].exercicio;
+    const bim = areasFim[0].periodo;
+    try {
+      const rows = (await sql`
+        SELECT exercicio,
+               COUNT(DISTINCT cod_ibge)::int AS munis
+        FROM despesa_por_funcao
+        WHERE exercicio >= ${ano}
+        GROUP BY exercicio
+        ORDER BY exercicio DESC
+      ` ) as Array<{ exercicio: number; munis: number }>;
+      const meu = rows.find((r) => r.exercicio === ano);
+      const maisRecente = rows.find((r) => r.exercicio > ano);
+      periodoInfo = {
+        ano,
+        bim,
+        munisComEsteAno: meu?.munis ?? 0,
+        munisComAnoMaisRecente: maisRecente?.munis ?? 0,
+        proxAno: maisRecente?.exercicio ?? null,
+      };
+    } catch {}
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-6 py-8">
       <header className="mb-8 pb-6 border-b border-slate-200">
@@ -194,6 +234,19 @@ export default async function MunicipioPage({ params }: PageProps) {
           )}
         </div>
       </header>
+
+      {/* Disclaimer de período se município está defasado */}
+      {periodoInfo.proxAno && periodoInfo.munisComAnoMaisRecente > 50 && (
+        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm flex items-start gap-3">
+          <div className="text-2xl">⏰</div>
+          <div className="flex-1 text-blue-900">
+            <strong>{municipio.nome}</strong> ainda não publicou RREO de <strong>{periodoInfo.proxAno}</strong>.
+            Dados exibidos são do exercício <strong>{periodoInfo.ano}/B{periodoInfo.bim}</strong>{" "}
+            (último publicado). Outros <strong>{periodoInfo.munisComAnoMaisRecente}</strong> municípios
+            paulistas já publicaram dados de {periodoInfo.proxAno}.
+          </div>
+        </div>
+      )}
 
       <MunicipioTabs
         municipio={municipio}
