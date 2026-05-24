@@ -101,27 +101,62 @@ function VereadorView({ indicadores }: { indicadores: IndicadorLRF[] }) {
   );
 }
 
+const LABELS: Record<string, string> = {
+  pessoal: "Despesa com Pessoal",
+  educacao: "Educação",
+  saude: "Saúde",
+  fundeb: "FUNDEB",
+  fundeb_profissionais: "FUNDEB Profissionais",
+  resultado_execucao: "Resultado Execução",
+};
+
+// Indicadores onde alto = ruim (limite máximo)
+const MAX_SEMANTIC = new Set(["pessoal", "divida"]);
+
 function LrfCard({ indicador }: { indicador: IndicadorLRF }) {
-  const color = lrfColor(indicador.pct_do_limite);
+  const valor = Number(indicador.valor ?? 0);
+  const limite = indicador.limite_legal != null ? Number(indicador.limite_legal) : null;
+  const pctLim = indicador.pct_do_limite != null ? Number(indicador.pct_do_limite) : null;
+
+  const isMaxLimit = MAX_SEMANTIC.has(indicador.indicador);
+  // Para indicadores "min", >=100% do mínimo é bom (verde); para "max", <80% é bom
+  const color = pctLim == null
+    ? "#94A3B8"
+    : isMaxLimit
+      ? lrfColor(pctLim)
+      : pctLim >= 100 ? "#00E5A0" : pctLim >= 80 ? "#00B4D8" : "#f59e0b";
+
+  const periodoLabel = indicador.periodicidade === "A"
+    ? `${indicador.exercicio}`
+    : `${indicador.exercicio}/${indicador.periodicidade}${indicador.periodo}`;
+
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-      <div className="text-xs uppercase tracking-wide text-slate-500 mb-1">
-        {indicador.indicador}
+      <div className="text-xs uppercase tracking-wide text-slate-500 mb-1 font-medium">
+        {LABELS[indicador.indicador] ?? indicador.indicador}
       </div>
       <div className="text-3xl font-bold" style={{ color: "#0A2463" }}>
-        {indicador.pct_do_limite.toFixed(1)}%
+        {valor.toFixed(1)}%
       </div>
       <div className="text-xs text-slate-500 mb-3">
-        limite legal: {indicador.limite_legal.toFixed(1)}%
+        {limite != null ? (
+          <>
+            {isMaxLimit ? "limite máximo" : "mínimo legal"}: <strong>{limite.toFixed(1)}%</strong>
+          </>
+        ) : (
+          <>sem limite legal</>
+        )}
       </div>
-      <div className="w-full bg-slate-100 rounded-full h-2">
-        <div
-          className="h-2 rounded-full"
-          style={{ width: `${Math.min(100, indicador.pct_do_limite)}%`, background: color }}
-        />
-      </div>
-      <div className="mt-2 text-[10px] text-slate-400">
-        {indicador.fonte} · {indicador.exercicio}/Q{indicador.periodo}
+      {pctLim != null && (
+        <div className="w-full bg-slate-100 rounded-full h-2">
+          <div
+            className="h-2 rounded-full transition-all"
+            style={{ width: `${Math.min(100, pctLim)}%`, background: color }}
+          />
+        </div>
+      )}
+      <div className="mt-2 text-[10px] text-slate-400 uppercase tracking-wide">
+        {indicador.fonte} · {periodoLabel}
       </div>
     </div>
   );
