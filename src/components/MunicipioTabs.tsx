@@ -25,11 +25,22 @@ interface DespesaFuncao {
   exercicio: number;
   periodo: number;
   eh_area_fim: boolean;
+  eh_subfuncao?: boolean;
+  funcao_pai?: string | null;
   dotacao_inicial: number | null;
   dotacao_atualizada: number | null;
   empenhado: number | null;
   liquidado: number | null;
   pct_do_total: number | null;
+}
+
+interface IndicadorFiscal {
+  indicador: string;
+  exercicio: number;
+  periodo: number;
+  valor: string;
+  meta: string | null;
+  fonte: string;
 }
 
 interface PublicacaoStatus {
@@ -60,12 +71,14 @@ export function MunicipioTabs({
   areasFim,
   publicacoes,
   ranking,
+  fiscais,
 }: {
   municipio: Municipio;
   indicadores: IndicadorLRF[];
   areasFim: DespesaFuncao[];
   publicacoes: PublicacaoStatus[];
   ranking: RankingPos[];
+  fiscais?: IndicadorFiscal[];
 }) {
   const [tab, setTab] = useState<Tab>("secretario");
 
@@ -96,22 +109,58 @@ export function MunicipioTabs({
         {TABS.find((t) => t.id === tab)?.subtitle}
       </div>
 
-      {tab === "secretario" && <SecretarioView indicadores={indicadores} areasFim={areasFim} />}
+      {tab === "secretario" && <SecretarioView indicadores={indicadores} areasFim={areasFim} fiscais={fiscais ?? []} />}
       {tab === "prefeito" && <PrefeitoView indicadores={indicadores} areasFim={areasFim} ranking={ranking} municipio={municipio} />}
       {tab === "vereador" && <VereadorView indicadores={indicadores} areasFim={areasFim} publicacoes={publicacoes} />}
     </div>
   );
 }
 
-function SecretarioView({ indicadores, areasFim }: { indicadores: IndicadorLRF[]; areasFim: DespesaFuncao[] }) {
+function SecretarioView({ indicadores, areasFim, fiscais }: { indicadores: IndicadorLRF[]; areasFim: DespesaFuncao[]; fiscais: IndicadorFiscal[] }) {
   const latest = pickLatest(indicadores);
-  const areasFimOnly = areasFim.filter((a) => a.eh_area_fim);
-  const areasMeio = areasFim.filter((a) => !a.eh_area_fim);
+  // Funções principais (eh_area_fim=true e !eh_subfuncao)
+  const areasFimPrinc = areasFim.filter((a) => a.eh_area_fim && !a.eh_subfuncao);
+  const areasMeioPrinc = areasFim.filter((a) => !a.eh_area_fim && !a.eh_subfuncao);
+  // Subfunções agrupadas por funcao_pai
+  const subfByPai = new Map<string, DespesaFuncao[]>();
+  for (const a of areasFim) {
+    if (a.eh_subfuncao && a.funcao_pai) {
+      const arr = subfByPai.get(a.funcao_pai) ?? [];
+      arr.push(a);
+      subfByPai.set(a.funcao_pai, arr);
+    }
+  }
   const refYear = areasFim[0]?.exercicio;
   const refPer = areasFim[0]?.periodo;
 
+  // Indicadores fiscais mais recentes (RCL, Resultado Primário)
+  const rcl = fiscais.find((f) => f.indicador === "rcl");
+  const rp = fiscais.find((f) => f.indicador === "resultado_primario");
+
   return (
     <div className="space-y-10">
+      {/* Indicadores fiscais R$ */}
+      {(rcl || rp) && (
+        <section>
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 mb-3">
+            Indicadores fiscais (R$)
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {rcl && <FiscalCard title="RCL — Receita Corrente Líquida" subtitle="últimos 12 meses" valor={rcl.valor} ref={`${rcl.exercicio}/B${rcl.periodo}`} fonte="RREO Anexo 03" />}
+            {rp && (
+              <FiscalCard
+                title="Resultado Primário"
+                subtitle={rp.meta ? "vs meta da LDO" : "valor realizado"}
+                valor={rp.valor}
+                meta={rp.meta}
+                ref={`${rp.exercicio}/B${rp.periodo}`}
+                fonte="RREO Anexo 06"
+              />
+            )}
+          </div>
+        </section>
+      )}
+
       {/* Indicadores LRF */}
       <section>
         <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 mb-3">
@@ -144,22 +193,22 @@ function SecretarioView({ indicadores, areasFim }: { indicadores: IndicadorLRF[]
         <p className="text-xs text-slate-500 mb-4 italic">
           Para cada secretaria/área que presta serviço direto à população: meta (dotação inicial da LOA), executado e % de execução.
         </p>
-        {areasFimOnly.length === 0 ? (
+        {areasFimPrinc.length === 0 ? (
           <SemAreasFimAviso />
         ) : (
-          <AreasFimTable areas={areasFimOnly} />
+          <AreasFimTable areas={areasFimPrinc} subfByPai={subfByPai} />
         )}
       </section>
 
       {/* Áreas-meio (recolhível) */}
-      {areasMeio.length > 0 && (
+      {areasMeioPrinc.length > 0 && (
         <section>
           <details>
             <summary className="cursor-pointer text-sm font-semibold uppercase tracking-wide text-slate-500 hover:text-slate-700">
-              Áreas-meio (legislativa, administração, encargos) — {areasMeio.length} funções
+              Áreas-meio (legislativa, administração, encargos) — {areasMeioPrinc.length} funções
             </summary>
             <div className="mt-4">
-              <AreasFimTable areas={areasMeio} />
+              <AreasFimTable areas={areasMeioPrinc} subfByPai={subfByPai} />
             </div>
           </details>
         </section>
@@ -168,24 +217,22 @@ function SecretarioView({ indicadores, areasFim }: { indicadores: IndicadorLRF[]
   );
 }
 
-function AreasFimTable({ areas }: { areas: DespesaFuncao[] }) {
-  const fmtBRL = (v: number | null) => {
-    if (v == null) return "—";
-    const n = Number(v);
-    if (n >= 1e9) return `R$ ${(n / 1e9).toFixed(2)} bi`;
-    if (n >= 1e6) return `R$ ${(n / 1e6).toFixed(2)} mi`;
-    if (n >= 1e3) return `R$ ${(n / 1e3).toFixed(1)} mil`;
-    return `R$ ${n.toFixed(0)}`;
+function AreasFimTable({ areas, subfByPai }: { areas: DespesaFuncao[]; subfByPai: Map<string, DespesaFuncao[]> }) {
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const toggle = (f: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      next.has(f) ? next.delete(f) : next.add(f);
+      return next;
+    });
   };
-  const pctExec = (a: DespesaFuncao) => {
-    if (!a.dotacao_inicial || !a.liquidado) return null;
-    return (Number(a.liquidado) / Number(a.dotacao_inicial)) * 100;
-  };
+
   return (
     <div className="overflow-hidden border border-slate-200 rounded-xl bg-white">
       <table className="w-full text-sm">
         <thead className="bg-slate-50 text-slate-600">
           <tr>
+            <th className="text-left px-4 py-3 font-semibold w-8"></th>
             <th className="text-left px-4 py-3 font-semibold">Área-fim</th>
             <th className="text-right px-4 py-3 font-semibold">Meta (Dotação)</th>
             <th className="text-right px-4 py-3 font-semibold">Empenhado</th>
@@ -196,35 +243,106 @@ function AreasFimTable({ areas }: { areas: DespesaFuncao[] }) {
         </thead>
         <tbody>
           {areas.map((a) => {
-            const exec = pctExec(a);
-            const cor = exec == null ? "#94A3B8"
-              : exec >= 95 ? "#00C48A"
-              : exec >= 80 ? "#00B4D8"
-              : exec >= 60 ? "#f59e0b"
-              : "#dc2626";
+            const subs = subfByPai.get(a.funcao) ?? [];
+            const open = expanded.has(a.funcao);
             return (
-              <tr key={a.funcao} className="border-t border-slate-100 hover:bg-slate-50">
-                <td className="px-4 py-3 font-medium text-slate-900">{a.funcao}</td>
-                <td className="px-4 py-3 text-right text-slate-700">{fmtBRL(a.dotacao_inicial)}</td>
-                <td className="px-4 py-3 text-right text-slate-700">{fmtBRL(a.empenhado)}</td>
-                <td className="px-4 py-3 text-right text-slate-700">{fmtBRL(a.liquidado)}</td>
-                <td className="px-4 py-3 text-right">
-                  {exec == null ? (
-                    <span className="text-slate-400">—</span>
-                  ) : (
-                    <span className="font-semibold" style={{ color: cor }}>
-                      {exec.toFixed(1)}%
-                    </span>
-                  )}
-                </td>
-                <td className="px-4 py-3 text-right text-slate-500">
-                  {a.pct_do_total != null ? `${Number(a.pct_do_total).toFixed(1)}%` : "—"}
-                </td>
-              </tr>
+              <FuncRow
+                key={a.funcao}
+                a={a}
+                subs={subs}
+                open={open}
+                onToggle={() => toggle(a.funcao)}
+              />
             );
           })}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function FuncRow({ a, subs, open, onToggle }: { a: DespesaFuncao; subs: DespesaFuncao[]; open: boolean; onToggle: () => void }) {
+  const exec = a.dotacao_inicial && a.liquidado ? (Number(a.liquidado) / Number(a.dotacao_inicial)) * 100 : null;
+  const cor = exec == null ? "#94A3B8"
+    : exec >= 95 ? "#00C48A"
+    : exec >= 80 ? "#00B4D8"
+    : exec >= 60 ? "#f59e0b"
+    : "#dc2626";
+  const canExpand = subs.length > 0;
+  return (
+    <>
+      <tr className={`border-t border-slate-100 hover:bg-slate-50 ${canExpand ? "cursor-pointer" : ""}`} onClick={canExpand ? onToggle : undefined}>
+        <td className="px-2 py-3 text-center text-slate-400">
+          {canExpand ? (
+            <span className="inline-block w-4 h-4 leading-4 text-xs">{open ? "▼" : "▶"}</span>
+          ) : (
+            ""
+          )}
+        </td>
+        <td className="px-4 py-3 font-medium text-slate-900">
+          {a.funcao}
+          {canExpand && <span className="ml-2 text-xs text-slate-400 font-normal">({subs.length} subáreas)</span>}
+        </td>
+        <td className="px-4 py-3 text-right text-slate-700">{fmtBRL(a.dotacao_inicial)}</td>
+        <td className="px-4 py-3 text-right text-slate-700">{fmtBRL(a.empenhado)}</td>
+        <td className="px-4 py-3 text-right text-slate-700">{fmtBRL(a.liquidado)}</td>
+        <td className="px-4 py-3 text-right">
+          {exec == null ? <span className="text-slate-400">—</span> : <span className="font-semibold" style={{ color: cor }}>{exec.toFixed(1)}%</span>}
+        </td>
+        <td className="px-4 py-3 text-right text-slate-500">
+          {a.pct_do_total != null ? `${Number(a.pct_do_total).toFixed(1)}%` : "—"}
+        </td>
+      </tr>
+      {open && subs.map((s) => {
+        const sExec = s.dotacao_inicial && s.liquidado ? (Number(s.liquidado) / Number(s.dotacao_inicial)) * 100 : null;
+        const sCor = sExec == null ? "#94A3B8"
+          : sExec >= 95 ? "#00C48A"
+          : sExec >= 80 ? "#00B4D8"
+          : sExec >= 60 ? "#f59e0b"
+          : "#dc2626";
+        return (
+          <tr key={`${a.funcao}-${s.funcao}`} className="bg-slate-50/50 border-t border-slate-100 text-xs">
+            <td></td>
+            <td className="px-4 py-2 text-slate-700 pl-12">↳ {s.funcao}</td>
+            <td className="px-4 py-2 text-right text-slate-600">{fmtBRL(s.dotacao_inicial)}</td>
+            <td className="px-4 py-2 text-right text-slate-600">{fmtBRL(s.empenhado)}</td>
+            <td className="px-4 py-2 text-right text-slate-600">{fmtBRL(s.liquidado)}</td>
+            <td className="px-4 py-2 text-right">
+              {sExec == null ? <span className="text-slate-400">—</span> : <span style={{ color: sCor }}>{sExec.toFixed(1)}%</span>}
+            </td>
+            <td className="px-4 py-2 text-right text-slate-400">
+              {s.pct_do_total != null ? `${Number(s.pct_do_total).toFixed(1)}%` : "—"}
+            </td>
+          </tr>
+        );
+      })}
+    </>
+  );
+}
+
+function FiscalCard({ title, subtitle, valor, meta, ref, fonte }: { title: string; subtitle: string; valor: string; meta?: string | null; ref: string; fonte: string }) {
+  const v = Number(valor);
+  const m = meta ? Number(meta) : null;
+  const isPos = v >= 0;
+  const pctMeta = m && m !== 0 ? (v / m) * 100 : null;
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+      <div className="text-xs uppercase tracking-wide text-slate-500 font-medium">{title}</div>
+      <div className="text-xs text-slate-400 mb-2">{subtitle}</div>
+      <div className="text-2xl font-bold" style={{ color: isPos ? "#0A2463" : "#dc2626" }}>
+        {fmtBRL(v)}
+      </div>
+      {m != null && (
+        <div className="text-xs text-slate-600 mt-1">
+          Meta LDO: <strong>{fmtBRL(m)}</strong>
+          {pctMeta != null && (
+            <span className="ml-2 text-slate-500">({pctMeta.toFixed(1)}% atingido)</span>
+          )}
+        </div>
+      )}
+      <div className="mt-3 text-[10px] uppercase tracking-wide text-slate-400">
+        {fonte} · {ref}
+      </div>
     </div>
   );
 }

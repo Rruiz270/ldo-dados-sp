@@ -46,6 +46,15 @@ interface PublicacaoStatus {
   atualizado_em: string;
 }
 
+interface IndicadorFiscal {
+  indicador: string;       // rcl | resultado_primario | resultado_nominal
+  exercicio: number;
+  periodo: number;
+  valor: string;           // R$
+  meta: string | null;     // só pra resultado_primario
+  fonte: string;
+}
+
 interface RankingPos {
   indicador: string;
   posicao: number;
@@ -64,6 +73,7 @@ export default async function MunicipioPage({ params }: PageProps) {
   let areasFim: DespesaFuncao[] = [];
   let publicacoes: PublicacaoStatus[] = [];
   let ranking: RankingPos[] = [];
+  let fiscais: IndicadorFiscal[] = [];
 
   try {
     const rows = (await sql`
@@ -82,7 +92,7 @@ export default async function MunicipioPage({ params }: PageProps) {
       // Pega o ano mais recente que tem despesas por função (preferencialmente
       // bimestre mais alto), pra ter dados mais frescos.
       areasFim = (await sql`
-        SELECT funcao, exercicio, periodo, eh_area_fim,
+        SELECT funcao, exercicio, periodo, eh_area_fim, eh_subfuncao, funcao_pai,
                dotacao_inicial, dotacao_atualizada, empenhado, liquidado, pct_do_total
         FROM despesa_por_funcao
         WHERE cod_ibge = ${codNum}
@@ -94,14 +104,19 @@ export default async function MunicipioPage({ params }: PageProps) {
             ORDER BY exercicio DESC
             LIMIT 1
           )
-        ORDER BY eh_area_fim DESC, empenhado DESC NULLS LAST
+        ORDER BY eh_area_fim DESC, eh_subfuncao ASC, empenhado DESC NULLS LAST
       `) as DespesaFuncao[];
 
-      // Filtro outliers conhecidos: FUNDEB com valores > 500% só aparece em 2016
-      // (schema antigo do TCE-SP onde campo era valor absoluto, não %)
       indicadores = indicadores.filter(
         (i) => !(i.indicador.startsWith("fundeb") && Number(i.valor) > 500),
       );
+
+      fiscais = (await sql`
+        SELECT indicador, exercicio, periodo, valor, meta, fonte
+        FROM indicadores_fiscais
+        WHERE cod_ibge = ${codNum}
+        ORDER BY exercicio DESC, periodo DESC, indicador
+      `) as IndicadorFiscal[];
 
       publicacoes = (await sql`
         SELECT dataset, status, atualizado_em
@@ -254,6 +269,7 @@ export default async function MunicipioPage({ params }: PageProps) {
         areasFim={areasFim}
         publicacoes={publicacoes}
         ranking={ranking}
+        fiscais={fiscais}
       />
     </div>
   );
