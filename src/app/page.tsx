@@ -1,6 +1,10 @@
 import { sql } from "@/lib/db";
 import { MunicipioSearch } from "@/components/MunicipioSearch";
 
+// Força render dinâmico — precisa do DATABASE_URL em runtime, não build time.
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 interface Row {
   cod_ibge: number;
   nome: string;
@@ -15,8 +19,8 @@ async function loadMunicipios(): Promise<Row[]> {
       ORDER BY nome ASC
     `) as Row[];
     return rows;
-  } catch {
-    // Sem banco ainda — render fallback
+  } catch (e) {
+    console.error("[loadMunicipios] failed:", e);
     return [];
   }
 }
