@@ -219,20 +219,34 @@ function SecretarioView({ indicadores, areasFim, fiscais }: { indicadores: Indic
 }
 
 // Calcula % execução com tratamento para crédito suplementar.
-// Quando dotação inicial era simbólica (programa criado/expandido durante o ano), o cálculo padrão
-// liquidado/inicial gera números absurdos (>500%) que sujam a leitura. Nesses casos usa-se a
-// dotação atualizada e sinaliza o caso pra preservar a história ("prometeu X, ampliou pra Y").
-function computeExec(dotIni: number | null, dotAtu: number | null, liq: number | null): { exec: number | null; cor: string; viaSuplementar: boolean } {
-  if (!liq) return { exec: null, cor: "#94A3B8", viaSuplementar: false };
+// Quando a dotação inicial era simbólica (programa criado/expandido durante o ano), o cálculo
+// padrão liquidado/inicial gera números absurdos (>500%) que sujam a leitura. Nesses casos usa-se
+// a dotação atualizada e sinaliza ("prometeu X, ampliou pra Y").
+// Casos extremos (atualizada negativa por anulação, ou ausente) viram badge "dados anômalos" sem
+// número — melhor honestidade que exibir 44.633%.
+function computeExec(dotIni: number | null, dotAtu: number | null, liq: number | null): { exec: number | null; cor: string; viaSuplementar: boolean; anomalo: boolean } {
+  if (!liq) return { exec: null, cor: "#94A3B8", viaSuplementar: false, anomalo: false };
   const ini = dotIni ? Number(dotIni) : 0;
   const atu = dotAtu ? Number(dotAtu) : 0;
   const l = Number(liq);
   const execIni = ini > 0 ? (l / ini) * 100 : null;
-  const isOutlier = execIni != null && execIni > 500 && atu > ini * 5;
-  const exec = isOutlier ? (atu > 0 ? (l / atu) * 100 : null) : execIni;
-  if (exec == null) return { exec: null, cor: "#94A3B8", viaSuplementar: isOutlier };
-  const cor = exec >= 95 ? "#00C48A" : exec >= 80 ? "#00B4D8" : exec >= 60 ? "#f59e0b" : "#dc2626";
-  return { exec, cor, viaSuplementar: isOutlier };
+
+  // Caso normal — execução plausível sobre dotação inicial
+  if (execIni == null || execIni <= 500) {
+    const cor = execIni == null ? "#94A3B8"
+      : execIni >= 95 ? "#00C48A" : execIni >= 80 ? "#00B4D8" : execIni >= 60 ? "#f59e0b" : "#dc2626";
+    return { exec: execIni, cor, viaSuplementar: false, anomalo: false };
+  }
+
+  // Outlier — tentar dotação atualizada se for válida (positiva e bem maior que inicial)
+  if (atu > 0 && atu > ini * 5) {
+    const execAtu = (l / atu) * 100;
+    const cor = execAtu >= 95 ? "#00C48A" : execAtu >= 80 ? "#00B4D8" : execAtu >= 60 ? "#f59e0b" : "#dc2626";
+    return { exec: execAtu, cor, viaSuplementar: true, anomalo: false };
+  }
+
+  // Outlier sem atualizada confiável (negativa, zero, ou ainda pequena) — anomalia
+  return { exec: null, cor: "#94A3B8", viaSuplementar: false, anomalo: true };
 }
 
 function AreasFimTable({ areas, subfByPai }: { areas: DespesaFuncao[]; subfByPai?: Map<string, DespesaFuncao[]> }) {
@@ -281,7 +295,7 @@ function AreasFimTable({ areas, subfByPai }: { areas: DespesaFuncao[]; subfByPai
 }
 
 function FuncRow({ a, subs, open, onToggle }: { a: DespesaFuncao; subs: DespesaFuncao[]; open: boolean; onToggle: () => void }) {
-  const { exec, cor, viaSuplementar } = computeExec(a.dotacao_inicial, a.dotacao_atualizada, a.liquidado);
+  const { exec, cor, viaSuplementar, anomalo } = computeExec(a.dotacao_inicial, a.dotacao_atualizada, a.liquidado);
   const canExpand = subs.length > 0;
   return (
     <>
@@ -301,6 +315,11 @@ function FuncRow({ a, subs, open, onToggle }: { a: DespesaFuncao; subs: DespesaF
               📈 ampliado p/ crédito suplementar
             </span>
           )}
+          {anomalo && (
+            <span title="Dados anômalos: dotação inicial simbólica e dotação atualizada negativa ou inconsistente. % execução não calculável de forma confiável — consulte os valores absolutos." className="ml-2 inline-block text-[10px] bg-red-100 text-red-800 px-1.5 py-0.5 rounded font-normal align-middle cursor-help">
+              ⚠️ dados anômalos
+            </span>
+          )}
         </td>
         <td className="px-4 py-3 text-right text-slate-700">{fmtBRL(a.dotacao_inicial)}</td>
         <td className="px-4 py-3 text-right text-slate-700">{fmtBRL(a.empenhado)}</td>
@@ -313,13 +332,14 @@ function FuncRow({ a, subs, open, onToggle }: { a: DespesaFuncao; subs: DespesaF
         </td>
       </tr>
       {open && subs.map((s) => {
-        const { exec: sExec, cor: sCor, viaSuplementar: sVia } = computeExec(s.dotacao_inicial, s.dotacao_atualizada, s.liquidado);
+        const { exec: sExec, cor: sCor, viaSuplementar: sVia, anomalo: sAno } = computeExec(s.dotacao_inicial, s.dotacao_atualizada, s.liquidado);
         return (
           <tr key={`${a.funcao}-${s.funcao}`} className="bg-slate-50/50 border-t border-slate-100 text-xs">
             <td></td>
             <td className="px-4 py-2 text-slate-700 pl-12">
               ↳ {s.funcao}
               {sVia && <span title="Ampliado via crédito suplementar — % sobre dotação atualizada" className="ml-2 text-[9px] bg-amber-100 text-amber-800 px-1 py-0.5 rounded">📈</span>}
+              {sAno && <span title="Dados anômalos" className="ml-2 text-[9px] bg-red-100 text-red-800 px-1 py-0.5 rounded">⚠️</span>}
             </td>
             <td className="px-4 py-2 text-right text-slate-600">{fmtBRL(s.dotacao_inicial)}</td>
             <td className="px-4 py-2 text-right text-slate-600">{fmtBRL(s.empenhado)}</td>
