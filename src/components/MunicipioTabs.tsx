@@ -150,11 +150,12 @@ function SecretarioView({ indicadores, areasFim, fiscais }: { indicadores: Indic
             {rp && (
               <FiscalCard
                 title="Resultado Primário"
-                subtitle={rp.meta ? "vs meta da LDO" : "valor realizado"}
+                subtitle={rp.meta ? "vs meta da LDO" : "valor realizado (sem rpps)"}
                 valor={rp.valor}
                 meta={rp.meta}
                 ref={`${rp.exercicio}/B${rp.periodo}`}
                 fonte="RREO Anexo 06"
+                metaIndisponivel={!rp.meta}
               />
             )}
           </div>
@@ -217,6 +218,23 @@ function SecretarioView({ indicadores, areasFim, fiscais }: { indicadores: Indic
   );
 }
 
+// Calcula % execução com tratamento para crédito suplementar.
+// Quando dotação inicial era simbólica (programa criado/expandido durante o ano), o cálculo padrão
+// liquidado/inicial gera números absurdos (>500%) que sujam a leitura. Nesses casos usa-se a
+// dotação atualizada e sinaliza o caso pra preservar a história ("prometeu X, ampliou pra Y").
+function computeExec(dotIni: number | null, dotAtu: number | null, liq: number | null): { exec: number | null; cor: string; viaSuplementar: boolean } {
+  if (!liq) return { exec: null, cor: "#94A3B8", viaSuplementar: false };
+  const ini = dotIni ? Number(dotIni) : 0;
+  const atu = dotAtu ? Number(dotAtu) : 0;
+  const l = Number(liq);
+  const execIni = ini > 0 ? (l / ini) * 100 : null;
+  const isOutlier = execIni != null && execIni > 500 && atu > ini * 5;
+  const exec = isOutlier ? (atu > 0 ? (l / atu) * 100 : null) : execIni;
+  if (exec == null) return { exec: null, cor: "#94A3B8", viaSuplementar: isOutlier };
+  const cor = exec >= 95 ? "#00C48A" : exec >= 80 ? "#00B4D8" : exec >= 60 ? "#f59e0b" : "#dc2626";
+  return { exec, cor, viaSuplementar: isOutlier };
+}
+
 function AreasFimTable({ areas, subfByPai }: { areas: DespesaFuncao[]; subfByPai?: Map<string, DespesaFuncao[]> }) {
   const subfMap = subfByPai ?? new Map<string, DespesaFuncao[]>();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -263,12 +281,7 @@ function AreasFimTable({ areas, subfByPai }: { areas: DespesaFuncao[]; subfByPai
 }
 
 function FuncRow({ a, subs, open, onToggle }: { a: DespesaFuncao; subs: DespesaFuncao[]; open: boolean; onToggle: () => void }) {
-  const exec = a.dotacao_inicial && a.liquidado ? (Number(a.liquidado) / Number(a.dotacao_inicial)) * 100 : null;
-  const cor = exec == null ? "#94A3B8"
-    : exec >= 95 ? "#00C48A"
-    : exec >= 80 ? "#00B4D8"
-    : exec >= 60 ? "#f59e0b"
-    : "#dc2626";
+  const { exec, cor, viaSuplementar } = computeExec(a.dotacao_inicial, a.dotacao_atualizada, a.liquidado);
   const canExpand = subs.length > 0;
   return (
     <>
@@ -283,6 +296,11 @@ function FuncRow({ a, subs, open, onToggle }: { a: DespesaFuncao; subs: DespesaF
         <td className="px-4 py-3 font-medium text-slate-900">
           {a.funcao}
           {canExpand && <span className="ml-2 text-xs text-slate-400 font-normal">({subs.length} subáreas)</span>}
+          {viaSuplementar && (
+            <span title="Programa ampliado via crédito suplementar (LRF Art. 43): dotação inicial era simbólica, prefeitura abriu a verba durante o exercício com autorização da Câmara. % execução exibido é sobre a dotação atualizada." className="ml-2 inline-block text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-normal align-middle cursor-help">
+              📈 ampliado p/ crédito suplementar
+            </span>
+          )}
         </td>
         <td className="px-4 py-3 text-right text-slate-700">{fmtBRL(a.dotacao_inicial)}</td>
         <td className="px-4 py-3 text-right text-slate-700">{fmtBRL(a.empenhado)}</td>
@@ -295,16 +313,14 @@ function FuncRow({ a, subs, open, onToggle }: { a: DespesaFuncao; subs: DespesaF
         </td>
       </tr>
       {open && subs.map((s) => {
-        const sExec = s.dotacao_inicial && s.liquidado ? (Number(s.liquidado) / Number(s.dotacao_inicial)) * 100 : null;
-        const sCor = sExec == null ? "#94A3B8"
-          : sExec >= 95 ? "#00C48A"
-          : sExec >= 80 ? "#00B4D8"
-          : sExec >= 60 ? "#f59e0b"
-          : "#dc2626";
+        const { exec: sExec, cor: sCor, viaSuplementar: sVia } = computeExec(s.dotacao_inicial, s.dotacao_atualizada, s.liquidado);
         return (
           <tr key={`${a.funcao}-${s.funcao}`} className="bg-slate-50/50 border-t border-slate-100 text-xs">
             <td></td>
-            <td className="px-4 py-2 text-slate-700 pl-12">↳ {s.funcao}</td>
+            <td className="px-4 py-2 text-slate-700 pl-12">
+              ↳ {s.funcao}
+              {sVia && <span title="Ampliado via crédito suplementar — % sobre dotação atualizada" className="ml-2 text-[9px] bg-amber-100 text-amber-800 px-1 py-0.5 rounded">📈</span>}
+            </td>
             <td className="px-4 py-2 text-right text-slate-600">{fmtBRL(s.dotacao_inicial)}</td>
             <td className="px-4 py-2 text-right text-slate-600">{fmtBRL(s.empenhado)}</td>
             <td className="px-4 py-2 text-right text-slate-600">{fmtBRL(s.liquidado)}</td>
@@ -321,7 +337,7 @@ function FuncRow({ a, subs, open, onToggle }: { a: DespesaFuncao; subs: DespesaF
   );
 }
 
-function FiscalCard({ title, subtitle, valor, meta, ref, fonte }: { title: string; subtitle: string; valor: string; meta?: string | null; ref: string; fonte: string }) {
+function FiscalCard({ title, subtitle, valor, meta, ref, fonte, metaIndisponivel }: { title: string; subtitle: string; valor: string; meta?: string | null; ref: string; fonte: string; metaIndisponivel?: boolean }) {
   const v = Number(valor);
   const m = meta ? Number(meta) : null;
   const isPos = v >= 0;
@@ -339,6 +355,11 @@ function FiscalCard({ title, subtitle, valor, meta, ref, fonte }: { title: strin
           {pctMeta != null && (
             <span className="ml-2 text-slate-500">({pctMeta.toFixed(1)}% atingido)</span>
           )}
+        </div>
+      )}
+      {metaIndisponivel && (
+        <div className="text-[11px] text-slate-500 mt-2 italic leading-snug">
+          ℹ️ Meta LDO não retornada pela API SICONFI. A coluna existe no template oficial do RREO Anexo 06, mas o Tesouro Nacional não disponibiliza no endpoint público. Apenas o valor realizado fica acessível.
         </div>
       )}
       <div className="mt-3 text-[10px] uppercase tracking-wide text-slate-400">
