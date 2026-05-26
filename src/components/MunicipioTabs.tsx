@@ -217,7 +217,8 @@ function SecretarioView({ indicadores, areasFim, fiscais }: { indicadores: Indic
   );
 }
 
-function AreasFimTable({ areas, subfByPai }: { areas: DespesaFuncao[]; subfByPai: Map<string, DespesaFuncao[]> }) {
+function AreasFimTable({ areas, subfByPai }: { areas: DespesaFuncao[]; subfByPai?: Map<string, DespesaFuncao[]> }) {
+  const subfMap = subfByPai ?? new Map<string, DespesaFuncao[]>();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const toggle = (f: string) => {
     setExpanded((prev) => {
@@ -243,7 +244,7 @@ function AreasFimTable({ areas, subfByPai }: { areas: DespesaFuncao[]; subfByPai
         </thead>
         <tbody>
           {areas.map((a) => {
-            const subs = subfByPai.get(a.funcao) ?? [];
+            const subs = subfMap.get(a.funcao) ?? [];
             const open = expanded.has(a.funcao);
             return (
               <FuncRow
