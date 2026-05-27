@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { lrfColor } from "@/lib/theme";
-import { UserCog, Crown, ShieldCheck, AlertTriangle, Coins, BarChart3, Check, X, type LucideIcon } from "lucide-react";
+import { UserCog, Crown, ShieldCheck, AlertTriangle, Coins, BarChart3, Check, X, TrendingUp, Download, type LucideIcon } from "lucide-react";
 
 interface Municipio {
   cod_ibge: number;
@@ -101,8 +101,8 @@ export function MunicipioTabs({
           ))}
         </div>
         <div className="flex gap-2">
-          <ExportButton format="xlsx" cod={municipio.cod_ibge} label="📥 Excel" />
-          <ExportButton format="pdf" cod={municipio.cod_ibge} label="📥 PDF" />
+          <ExportButton format="xlsx" cod={municipio.cod_ibge} label="Excel" />
+          <ExportButton format="pdf" cod={municipio.cod_ibge} label="PDF" />
         </div>
       </div>
 
@@ -312,13 +312,13 @@ function FuncRow({ a, subs, open, onToggle }: { a: DespesaFuncao; subs: DespesaF
           {a.funcao}
           {canExpand && <span className="ml-2 text-xs text-slate-400 font-normal">({subs.length} subáreas)</span>}
           {viaSuplementar && (
-            <span title="Programa ampliado via crédito suplementar (LRF Art. 43): dotação inicial era simbólica, prefeitura abriu a verba durante o exercício com autorização da Câmara. % execução exibido é sobre a dotação atualizada." className="ml-2 inline-block text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-normal align-middle cursor-help">
-              📈 ampliado p/ crédito suplementar
+            <span title="Programa ampliado via crédito suplementar (LRF Art. 43): dotação inicial era simbólica, prefeitura abriu a verba durante o exercício com autorização da Câmara. % execução exibido é sobre a dotação atualizada." className="ml-2 inline-flex items-center gap-1 text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-normal align-middle cursor-help">
+              <TrendingUp size={11} strokeWidth={2.2} aria-hidden /> ampliado p/ crédito suplementar
             </span>
           )}
           {anomalo && (
-            <span title="Dados anômalos: dotação inicial simbólica e dotação atualizada negativa ou inconsistente. % execução não calculável de forma confiável — consulte os valores absolutos." className="ml-2 inline-block text-[10px] bg-red-100 text-red-800 px-1.5 py-0.5 rounded font-normal align-middle cursor-help">
-              ⚠️ dados anômalos
+            <span title="Dados anômalos: dotação inicial simbólica e dotação atualizada negativa ou inconsistente. % execução não calculável de forma confiável — consulte os valores absolutos." className="ml-2 inline-flex items-center gap-1 text-[10px] bg-red-100 text-red-800 px-1.5 py-0.5 rounded font-normal align-middle cursor-help">
+              <AlertTriangle size={11} strokeWidth={2.2} aria-hidden /> dados anômalos
             </span>
           )}
         </td>
@@ -339,8 +339,8 @@ function FuncRow({ a, subs, open, onToggle }: { a: DespesaFuncao; subs: DespesaF
             <td></td>
             <td className="px-4 py-2 text-slate-700 pl-12">
               ↳ {s.funcao}
-              {sVia && <span title="Ampliado via crédito suplementar — % sobre dotação atualizada" className="ml-2 text-[9px] bg-amber-100 text-amber-800 px-1 py-0.5 rounded">📈</span>}
-              {sAno && <span title="Dados anômalos" className="ml-2 text-[9px] bg-red-100 text-red-800 px-1 py-0.5 rounded">⚠️</span>}
+              {sVia && <span title="Ampliado via crédito suplementar — % sobre dotação atualizada" className="ml-2 inline-flex items-center text-[9px] bg-amber-100 text-amber-800 px-1 py-0.5 rounded"><TrendingUp size={10} strokeWidth={2.2} aria-hidden /></span>}
+              {sAno && <span title="Dados anômalos" className="ml-2 inline-flex items-center text-[9px] bg-red-100 text-red-800 px-1 py-0.5 rounded"><AlertTriangle size={10} strokeWidth={2.2} aria-hidden /></span>}
             </td>
             <td className="px-4 py-2 text-right text-slate-600">{fmtBRL(s.dotacao_inicial)}</td>
             <td className="px-4 py-2 text-right text-slate-600">{fmtBRL(s.empenhado)}</td>
@@ -476,8 +476,8 @@ function PrefeitoView({
       {/* Alertas */}
       {alertas.length > 0 && (
         <section>
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 mb-3">
-            ⚠️ Pontos de atenção
+          <h3 className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500 mb-3">
+            <AlertTriangle size={16} strokeWidth={2} aria-hidden /> Pontos de atenção
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {alertas.map((a) => (
@@ -536,8 +536,8 @@ function PrefeitoView({
       {/* Top investimentos */}
       {topAreas.length > 0 && (
         <section>
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 mb-3">
-            💰 Top 5 áreas em investimento ({topAreas[0]?.exercicio})
+          <h3 className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500 mb-3">
+            <Coins size={16} strokeWidth={2} aria-hidden /> Top 5 áreas em investimento ({topAreas[0]?.exercicio})
           </h3>
           <div className="space-y-2">
             {topAreas.map((a) => {
@@ -614,10 +614,16 @@ function VereadorView({
         <div className="text-xs uppercase tracking-wider text-slate-600 mb-2">
           Cumprimento de Lei (LRF · CF Art. 198 · CF Art. 212)
         </div>
-        <div className="text-3xl font-bold mb-1" style={{ color: fora_da_lei.length > 0 ? "#991B1B" : "#065F46" }}>
-          {fora_da_lei.length === 0
-            ? "✓ Cumprindo todos os limites legais"
-            : `⚠️ ${fora_da_lei.length} indicador(es) fora do limite legal`}
+        <div className="inline-flex items-center gap-2 text-2xl md:text-3xl font-bold mb-1" style={{ color: fora_da_lei.length > 0 ? "#991B1B" : "#065F46" }}>
+          {fora_da_lei.length === 0 ? (
+            <>
+              <Check size={28} strokeWidth={2.5} aria-hidden /> Cumprindo todos os limites legais
+            </>
+          ) : (
+            <>
+              <AlertTriangle size={28} strokeWidth={2.5} aria-hidden /> {fora_da_lei.length} indicador(es) fora do limite legal
+            </>
+          )}
         </div>
         {fora_da_lei.length > 0 && (
           <ul className="mt-3 text-sm text-red-900 space-y-1">
@@ -635,8 +641,8 @@ function VereadorView({
       {/* Tabela meta vs realizado */}
       {areasFimOnly.length > 0 && (
         <section>
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 mb-1">
-            📊 Promessa (LOA) vs Entregue por área-fim
+          <h3 className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500 mb-1">
+            <BarChart3 size={16} strokeWidth={2} aria-hidden /> Promessa (LOA) vs Entregue por área-fim
           </h3>
           <p className="text-xs text-slate-500 mb-4 italic">
             Esta é a tabela de accountability: o município se comprometeu (Dotação Inicial), e entregou (Liquidado).
@@ -675,7 +681,7 @@ function VereadorView({
                 }`}
               >
                 <span className="font-mono">{p.dataset}</span>
-                <span>{p.status === "PUBLICADO" ? "✓" : "✗"}</span>
+                <span className="inline-flex items-center">{p.status === "PUBLICADO" ? <Check size={13} strokeWidth={2.5} aria-hidden /> : <X size={13} strokeWidth={2.5} aria-hidden />}</span>
               </div>
             ))}
           </div>

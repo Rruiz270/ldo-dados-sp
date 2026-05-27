@@ -88,7 +88,7 @@ export default async function PlanejamentoPage({ params }: PageProps) {
                 <Td className="text-xs">{d.numero_lei || "—"}</Td>
                 <Td className="text-xs text-slate-500">{fmtDate(d.data_lei)}</Td>
                 <Td>{d.validado
-                  ? <span className="text-green-700 font-medium">✓</span>
+                  ? <span className="text-green-700 font-medium">validado</span>
                   : <span className="text-slate-400">pendente</span>}</Td>
                 <Td>{d.url_pdf
                   ? <a href={d.url_pdf} target="_blank" rel="noopener" className="text-cyan-700 underline text-xs">abrir PDF</a>

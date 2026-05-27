@@ -234,7 +234,7 @@ export default async function MunicipioPage({ params }: PageProps) {
             }}
             title={`${pubCount} de ${totalPub} relatórios fiscais obrigatórios publicados`}
           >
-            {pctPubli >= 80 ? "✓" : pctPubli >= 50 ? "⚠" : "✗"} Transparência {pctPubli}%
+            Transparência {pctPubli}%
           </span>
         )}
         {ndpCount > 0 && (
@@ -250,7 +250,7 @@ export default async function MunicipioPage({ params }: PageProps) {
           className="p-4 rounded-2xl text-sm flex items-start gap-3"
           style={{ background: "linear-gradient(135deg, rgba(11,47,99,0.04), rgba(78,181,31,0.05))", border: "1px solid rgba(11,47,99,0.10)" }}
         >
-          <div className="text-2xl">⏰</div>
+          <div style={{ color: "var(--azul-2)" }}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
           <div className="flex-1" style={{ color: "var(--azul)" }}>
             <strong>{municipio.nome}</strong> ainda não publicou RREO de <strong>{periodoInfo.proxAno}</strong>.
             Dados exibidos são do exercício <strong>{periodoInfo.ano}/B{periodoInfo.bim}</strong>{" "}

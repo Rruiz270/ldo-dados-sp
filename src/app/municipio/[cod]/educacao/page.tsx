@@ -121,8 +121,8 @@ export default async function EducacaoPage({ params }: PageProps) {
                   {r.meta_atingida === null
                     ? <span className="text-slate-400">—</span>
                     : r.meta_atingida
-                    ? <span className="text-green-700 font-medium">✓ Sim</span>
-                    : <span className="text-red-700 font-medium">✗ Não</span>}
+                    ? <span className="inline-flex items-center gap-1 text-green-700 font-medium">Sim</span>
+                    : <span className="inline-flex items-center gap-1 text-red-700 font-medium">Não</span>}
                 </Td>
               </tr>
             ))}

@@ -67,7 +67,9 @@ export default function SobrePage() {
         <ul className="px-6 py-5 space-y-2 text-sm md:text-base" style={{ color: "var(--grafite)" }}>
           {OBJETIVOS.map((o, i) => (
             <li key={i} className="flex gap-3">
-              <span style={{ color: "var(--verde-2)", fontWeight: 800 }}>✓</span>
+              <span style={{ color: "var(--verde-2)" }} className="inline-flex items-center mt-0.5">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </span>
               <span>{o}</span>
             </li>
           ))}
