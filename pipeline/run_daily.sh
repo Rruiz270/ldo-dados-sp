@@ -17,14 +17,30 @@ START_TS=$(date +%s)
   echo "Run iniciado: $(date)"
   echo "=================================================="
   echo ""
-  echo "--- SICONFI ---"
+  echo "--- SICONFI (STN) ---"
   /usr/bin/env python3 siconfi_scraper.py
   echo ""
   echo "--- Audesp/TCE-SP ---"
   /usr/bin/env python3 audesp_downloader.py
   echo ""
+  echo "--- SIOPE (FNDE) ---"
+  /usr/bin/env python3 siope_scraper.py
+  echo ""
+  echo "--- SIOPS (DataSUS) ---"
+  /usr/bin/env python3 siops_scraper.py
+  echo ""
+  echo "--- INEP (IDEB) ---"
+  /usr/bin/env python3 inep_scraper.py
+  echo ""
+  echo "--- PPA/LDO/LOA (best-effort) ---"
+  /usr/bin/env python3 ppa_ldo_loa_scraper.py || true
+  echo ""
   echo "--- Sync → Neon (ldo-dados-sp) ---"
   /usr/bin/env python3 sync_to_neon.py
+  /usr/bin/env python3 sync_siope.py
+  /usr/bin/env python3 sync_siops.py
+  /usr/bin/env python3 sync_inep.py
+  /usr/bin/env python3 sync_ppa_ldo.py || true
   echo ""
   echo "Run finalizado: $(date)"
 } >> "$LOG_FILE" 2>&1

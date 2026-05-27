@@ -33,6 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </a>
             <nav className="flex gap-6 text-sm font-medium">
               <a href={`${basePath}/`} className="hover:text-cyan-100">Município</a>
+              <a href={`${basePath}/matriz-legal`} className="hover:text-cyan-100">Matriz legal</a>
               <a href={`${basePath}/comparar`} className="hover:text-cyan-100">Comparar</a>
               <a href={`${basePath}/sobre`} className="hover:text-cyan-100">Sobre</a>
             </nav>
@@ -41,8 +42,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main className="flex-1">{children}</main>
         <footer className="bg-slate-900 text-slate-300 py-6">
           <div className="max-w-7xl mx-auto px-6 text-xs">
-            Fontes: <strong>Tesouro Nacional (SICONFI)</strong> e <strong>TCE-SP (Audesp)</strong>.
-            Atualizado diariamente às 4h. ·{" "}
+            Radar Fiscal 360 · Fontes oficiais: <strong>SICONFI</strong> (STN), <strong>Audesp</strong> (TCE-SP),
+            <strong> SIOPE</strong> (FNDE), <strong> SIOPS</strong> (DataSUS), <strong> INEP</strong> (IDEB). Atualizado diariamente às 4h ·{" "}
+            <a className="underline" href={`${basePath}/matriz-legal`}>matriz legal</a> ·{" "}
             <a className="underline" href="https://institutoi10.com.br" target="_blank">Instituto i10</a>
           </div>
         </footer>
