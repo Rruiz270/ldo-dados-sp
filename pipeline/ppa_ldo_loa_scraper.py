@@ -45,6 +45,7 @@ import requests
 BASE = os.path.dirname(os.path.abspath(__file__))
 MUNICIPIOS_FILE = os.path.join(BASE, "siconfi_data", "municipios_sp.json")
 OUTPUT_DIR = os.path.join(BASE, "leis_data")
+FAMILY_MAP_FILE = os.path.join(OUTPUT_DIR, "family_map.json")
 
 USER_AGENT = "Radar360-SP/1.0 (raphael.ruiz@betteredu.com.br)"
 BROWSER_UA = (
@@ -55,6 +56,7 @@ BROWSER_UA = (
 REQUEST_TIMEOUT = 30
 PDF_DOWNLOAD_TIMEOUT = 60
 RATE_LIMIT_SEC = 1.0  # 1 req/s, conforme spec
+SKIP_SEARCH_ENGINE = False  # flip via --family-only
 
 # Tipos suportados. Para PPA, exercicio = ano inicial do plano quadrienal.
 TIPOS = {
@@ -127,7 +129,9 @@ class LawDoc:
     sha256: Optional[str] = None
     bytes_baixados: int = 0
     coletado_em: str = field(default_factory=lambda: datetime.now().isoformat(timespec="seconds"))
-    status: str = "NAO_ENCONTRADO"   # 'OK' | 'NAO_ENCONTRADO' | 'BLOQUEADO' | 'ERRO_DOWNLOAD'
+    # Status: 'OK' (PDF baixado) | 'OK_HTML' (texto inline, sem PDF — Instar)
+    #         | 'NAO_ENCONTRADO' | 'BLOQUEADO' | 'ERRO_DOWNLOAD'
+    status: str = "NAO_ENCONTRADO"
     erro: Optional[str] = None
 
 
@@ -376,32 +380,67 @@ def head_pdf(url: str) -> Optional[dict]:
 
 
 def download_pdf(url: str, dest_path: str) -> Optional[int]:
-    """Baixa PDF, retorna tamanho em bytes ou None em erro."""
+    """Baixa PDF, retorna tamanho em bytes ou None em erro.
+
+    Suporta:
+      - HTTP redirect padrão (302)
+      - Meta refresh HTML (comum em portais Instar: /portal/download/legislacao/{token}
+        retorna HTML com <meta http-equiv="refresh" url="/publicos/l4376_xxx.pdf">)
+    """
     s = session_for(BROWSER_UA)
     try:
-        with s.get(url, timeout=PDF_DOWNLOAD_TIMEOUT, stream=True) as r:
+        with s.get(url, timeout=PDF_DOWNLOAD_TIMEOUT, stream=True,
+                   allow_redirects=True) as r:
             if r.status_code != 200:
                 return None
             ctype = r.headers.get("Content-Type", "").lower()
-            if "pdf" not in ctype and not url.lower().endswith(".pdf"):
-                # confere primeiros bytes (%PDF-)
-                pass
-            os.makedirs(os.path.dirname(dest_path), exist_ok=True)
-            size = 0
-            with open(dest_path, "wb") as f:
-                for chunk in r.iter_content(chunk_size=8192):
-                    if chunk:
-                        f.write(chunk)
-                        size += len(chunk)
-            # Validação mínima: arquivo começa com %PDF-
-            with open(dest_path, "rb") as f:
-                magic = f.read(5)
-            if magic != b"%PDF-":
-                os.unlink(dest_path)
-                return None
-            return size
+            # Caso 1: PDF normal
+            if "pdf" in ctype or url.lower().endswith(".pdf"):
+                return _stream_to_pdf(r, dest_path)
+            # Caso 2: HTML com meta refresh → seguimos manualmente
+            if "html" in ctype or "text" in ctype:
+                body = r.text[:5000]
+                m = re.search(
+                    r'<meta[^>]+http-equiv="refresh"[^>]+content="[^"]*url=([^"]+)"',
+                    body, re.IGNORECASE,
+                )
+                if m:
+                    next_url = m.group(1).strip()
+                    if next_url.startswith("/"):
+                        from urllib.parse import urlparse
+                        parsed = urlparse(r.url)
+                        next_url = f"{parsed.scheme}://{parsed.netloc}{next_url}"
+                    # Recursão controlada (1 nível)
+                    with s.get(next_url, timeout=PDF_DOWNLOAD_TIMEOUT,
+                               stream=True, allow_redirects=True) as r2:
+                        if r2.status_code != 200:
+                            return None
+                        return _stream_to_pdf(r2, dest_path)
+            return None
     except (requests.RequestException, OSError):
         return None
+
+
+def _stream_to_pdf(response, dest_path: str) -> Optional[int]:
+    """Stream HTTP response body to dest, validate %PDF- magic."""
+    os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+    size = 0
+    with open(dest_path, "wb") as f:
+        for chunk in response.iter_content(chunk_size=8192):
+            if chunk:
+                f.write(chunk)
+                size += len(chunk)
+    if size == 0:
+        return None
+    with open(dest_path, "rb") as f:
+        magic = f.read(5)
+    if magic != b"%PDF-":
+        try:
+            os.unlink(dest_path)
+        except OSError:
+            pass
+        return None
+    return size
 
 
 def sha256_file(path: str) -> str:
@@ -439,8 +478,73 @@ def try_extract_lei_metadata(url: str, titulo: str) -> tuple[Optional[str], Opti
 
 
 # ---------------------------------------------------------------------------
-# Pipeline principal
+# Family crawler — dispatch para parsers por família de portal
 # ---------------------------------------------------------------------------
+
+_FAMILY_MAP_CACHE: Optional[dict] = None
+_FAMILY_DOCS_CACHE: dict[int, list[dict]] = {}
+
+
+def _load_family_map() -> dict:
+    """Lê pipeline/leis_data/family_map.json. Retorna {} se não existe."""
+    global _FAMILY_MAP_CACHE
+    if _FAMILY_MAP_CACHE is not None:
+        return _FAMILY_MAP_CACHE
+    if not os.path.exists(FAMILY_MAP_FILE):
+        _FAMILY_MAP_CACHE = {}
+        return _FAMILY_MAP_CACHE
+    try:
+        with open(FAMILY_MAP_FILE, encoding="utf-8") as f:
+            data = json.load(f)
+        _FAMILY_MAP_CACHE = {m["cod_ibge"]: m for m in data.get("municipios", [])}
+    except (json.JSONDecodeError, KeyError):
+        _FAMILY_MAP_CACHE = {}
+    return _FAMILY_MAP_CACHE
+
+
+def _crawl_family(muni: dict) -> list[dict]:
+    """Tenta crawl via parser da família correspondente. Cacheia resultado
+    por cod_ibge — uma só chamada por município, mesmo com vários (tipo, ano).
+    """
+    cod = muni["cod_ibge"]
+    if cod in _FAMILY_DOCS_CACHE:
+        return _FAMILY_DOCS_CACHE[cod]
+    fm = _load_family_map().get(cod)
+    if not fm:
+        _FAMILY_DOCS_CACHE[cod] = []
+        return []
+    familia = fm.get("familia") or ""
+    url_base = fm.get("url_final") or fm.get("url_base") or ""
+    if not url_base:
+        _FAMILY_DOCS_CACHE[cod] = []
+        return []
+
+    docs: list[dict] = []
+    try:
+        if familia == "instar":
+            from pipeline.portal_families import instar
+            docs = instar.find_documents(cod, url_base)
+        elif familia == "ipm":
+            from pipeline.portal_families import ipm
+            docs = ipm.find_documents(cod, url_base)
+        elif familia == "leismunicipais":
+            from pipeline.portal_families import leismunicipais
+            docs = leismunicipais.find_documents(cod, url_base)
+        elif familia in ("websphere", "drupal", "wordpress", "municipal",
+                          "unknown", "offline", "error", "granito", "liferay",
+                          "mitra", "memory", "publicsoft", "egov",
+                          "portal_api", "intellgest"):
+            # Famílias ainda sem parser dedicado — fallback para search engine
+            docs = []
+        else:
+            docs = []
+    except Exception as e:  # pylint: disable=broad-except
+        log(f"  family parser error for {familia}: {e}")
+        docs = []
+
+    _FAMILY_DOCS_CACHE[cod] = docs
+    return docs
+
 
 def search_and_download(muni: dict, tipo: str, ano: int) -> LawDoc:
     cod = muni["cod_ibge"]
@@ -449,7 +553,32 @@ def search_and_download(muni: dict, tipo: str, ano: int) -> LawDoc:
 
     log(f"  [{cod}] {nome} | {tipo} {ano}")
 
-    # ---- 0. Cache/seed de URLs já descobertas manualmente ----
+    # ---- 0a. Family crawler (priority — alto recall e alta precisão) ----
+    family_docs = _crawl_family(muni)
+    match = next(
+        (d for d in family_docs if d.get("tipo") == tipo and d.get("ano") == ano),
+        None,
+    )
+    if match:
+        url = match.get("url_pdf") or match.get("url_html")
+        if url:
+            doc.fonte = "FAMILY_CRAWLER"
+            doc.titulo_encontrado = match.get("titulo")
+            doc.numero_lei = match.get("numero_lei")
+            doc.data_lei = match.get("data_lei")
+            log(f"     FAMILY hit ({_load_family_map().get(cod, {}).get('familia')})"
+                f" → {url[:80]}")
+            # Se url é PDF, baixa direto; se HTML, marca como referência
+            if url.lower().endswith(".pdf") or "/download/" in url or \
+               "/anexo/" in url:
+                return _do_download(doc, url, match.get("titulo"), "FAMILY_CRAWLER")
+            # HTML — registra ementa+titulo mas não tenta forçar PDF
+            doc.url_pdf = url
+            doc.status = "OK_HTML"
+            doc.erro = None
+            return doc
+
+    # ---- 0b. Cache/seed de URLs já descobertas manualmente ----
     seed = SEED_URLS.get((cod, tipo, ano))
     if seed:
         log(f"     SEED url: {seed[:80]}")
@@ -468,7 +597,12 @@ def search_and_download(muni: dict, tipo: str, ano: int) -> LawDoc:
         if direct_urls:
             log(f"     PORTAL: {len(direct_urls)} candidatos via portal direto")
 
-    # ---- 2. Startpage (motor de busca) ----
+    # ---- 2. Startpage (motor de busca) — pulado se --family-only ----
+    if SKIP_SEARCH_ENGINE:
+        doc.status = "NAO_ENCONTRADO"
+        doc.erro = "family crawler sem match; busca externa desabilitada"
+        return doc
+
     all_urls = list(direct_urls)
     queries = build_queries(nome, tipo, ano)
     blocked_count = 0
@@ -550,7 +684,11 @@ def _do_download(doc: LawDoc, url: str, title: Optional[str], fonte: str) -> Law
 
     doc.bytes_baixados = size
     doc.sha256 = sha256_file(pdf_path)
-    doc.numero_lei, doc.data_lei = try_extract_lei_metadata(url, title or "")
+    # Não sobrescreve numero_lei/data_lei se já vieram do family crawler
+    if not doc.numero_lei or not doc.data_lei:
+        nl, dl = try_extract_lei_metadata(url, title or "")
+        doc.numero_lei = doc.numero_lei or nl
+        doc.data_lei = doc.data_lei or dl
     doc.status = "OK"
     log(f"     OK: {size//1024} KB, sha256={doc.sha256[:12]}, fonte={fonte}")
     return doc
@@ -577,7 +715,11 @@ def main():
                         choices=list(TIPOS.keys()))
     parser.add_argument("--anos", type=int, nargs="*",
                         help="Anos. Default: ver DEFAULT_ANOS por tipo")
+    parser.add_argument("--family-only", action="store_true",
+                        help="Usa só family crawler; pula Startpage/Wayback")
     args = parser.parse_args()
+    global SKIP_SEARCH_ENGINE
+    SKIP_SEARCH_ENGINE = args.family_only
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     municipios = load_municipios()
@@ -611,18 +753,39 @@ def main():
     # Stats
     total = len(docs)
     ok = sum(1 for d in docs if d.status == "OK")
-    by_muni = {}
+    ok_html = sum(1 for d in docs if d.status == "OK_HTML")
+    by_muni: dict[str, dict] = {}
+    by_fonte: dict[str, int] = {}
+    by_familia: dict[str, dict[str, int]] = {}
+    fmap = _load_family_map()
     for d in docs:
-        by_muni.setdefault(d.municipio, {"total": 0, "ok": 0})
+        by_muni.setdefault(d.municipio, {"total": 0, "ok": 0, "ok_html": 0})
         by_muni[d.municipio]["total"] += 1
         if d.status == "OK":
             by_muni[d.municipio]["ok"] += 1
+        elif d.status == "OK_HTML":
+            by_muni[d.municipio]["ok_html"] += 1
+        by_fonte[d.fonte or "NONE"] = by_fonte.get(d.fonte or "NONE", 0) + 1
+        familia = (fmap.get(d.cod_ibge) or {}).get("familia", "?")
+        by_familia.setdefault(familia, {"total": 0, "ok": 0, "ok_html": 0})
+        by_familia[familia]["total"] += 1
+        if d.status == "OK":
+            by_familia[familia]["ok"] += 1
+        elif d.status == "OK_HTML":
+            by_familia[familia]["ok_html"] += 1
 
     log("=" * 60)
-    log(f"FIM: {ok}/{total} documentos baixados")
+    log(f"FIM: {ok} PDF + {ok_html} HTML = {ok + ok_html}/{total} documentos")
+    log("Por fonte:")
+    for fonte, c in sorted(by_fonte.items(), key=lambda x: -x[1]):
+        log(f"  {fonte:18s} {c}")
+    log("Por família de portal:")
+    for fam, st in sorted(by_familia.items(), key=lambda x: -x[1]["total"]):
+        log(f"  {fam:15s} total={st['total']:4d} pdf={st['ok']:4d} "
+            f"html={st['ok_html']:4d}")
     log("Por município:")
     for nome, st in by_muni.items():
-        log(f"  {nome:30s} {st['ok']}/{st['total']}")
+        log(f"  {nome:30s} pdf={st['ok']} html={st['ok_html']}/{st['total']}")
     log(f"Sumário salvo em {summary_path}")
 
 
