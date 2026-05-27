@@ -87,16 +87,16 @@ export function MunicipioTabs({
     <div>
       <div className="flex items-center justify-between mb-6">
         <div className="flex gap-2 bg-slate-100 p-1 rounded-xl">
-          {TABS.map((t) => (
+          {TABS.map(({ id, label, Icon }) => (
             <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
-                tab === t.id ? "bg-white shadow text-slate-900" : "text-slate-600 hover:text-slate-900"
+              key={id}
+              onClick={() => setTab(id)}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition ${
+                tab === id ? "bg-white shadow text-slate-900" : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              <span className="mr-2">{t.emoji}</span>
-              {t.label}
+              <Icon size={16} strokeWidth={2} aria-hidden />
+              {label}
             </button>
           ))}
         </div>
