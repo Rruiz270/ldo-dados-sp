@@ -11,6 +11,10 @@ next-env.d.ts
 # Pipeline (scrapers SICONFI/Audesp/FNDE) — raw data fica em disco, não em git
 pipeline/siconfi_data/
 pipeline/audesp_data/
+pipeline/siope_data/
+pipeline/siops_data/
+pipeline/inep_data/
+pipeline/leis_data/
 pipeline/fnde_data_2026/
 pipeline/pdfs/
 pipeline/relatorios/
@@ -20,3 +24,11 @@ pipeline/__pycache__/
 pipeline/*.db
 pipeline/*.db-shm
 pipeline/*.db-wal
+
+# Pipeline secrets — qualquer .mcp.json ou .env dentro de pipeline/ NUNCA entra em git
+pipeline/.mcp.json
+pipeline/.env
+pipeline/.env.*
+pipeline/**/.mcp.json
+pipeline/**/.env
+pipeline/**/secrets.*
