@@ -1,10 +1,12 @@
 -- Áreas-fim e demais funções de governo do RREO Anexo 02.
 -- Cada município, por ano + bimestre, tem dotação (meta da LOA),
 -- empenhado e liquidado (execução) por função/subfunção.
+--
+-- IMPORTANTE: o DROP TABLE original foi removido em 2026-05-27 após bug
+-- onde o runner re-aplica todas as migrations a cada deploy e o DROP zerou
+-- dados de produção. CREATE TABLE IF NOT EXISTS é seguro para re-execução.
 
-DROP TABLE IF EXISTS despesa_por_funcao;
-
-CREATE TABLE despesa_por_funcao (
+CREATE TABLE IF NOT EXISTS despesa_por_funcao (
   cod_ibge BIGINT NOT NULL,
   exercicio INTEGER NOT NULL,
   periodo INTEGER NOT NULL,           -- bimestre RREO 1-6
