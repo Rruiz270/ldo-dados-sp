@@ -212,53 +212,49 @@ export default async function MunicipioPage({ params }: PageProps) {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8">
-      <header className="mb-8 pb-6 border-b border-slate-200">
-        <div className="text-xs text-slate-500 mb-1">
-          IBGE {municipio.cod_ibge}{municipio.regiao ? ` · ${municipio.regiao}` : ""}
-        </div>
-        <h1
-          className="text-4xl font-bold mb-2"
-          style={{ color: "#0A2463", fontFamily: "var(--font-display)" }}
-        >
-          {municipio.nome}
-        </h1>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-600">
-          <span>
-            População: <strong>{municipio.populacao?.toLocaleString("pt-BR")}</strong> hab
+    <div className="space-y-5">
+      {/* Chips de status — header de identidade já vem do layout */}
+      <div className="flex flex-wrap items-center gap-2 text-xs">
+        {municipio.regiao && (
+          <span className="px-2.5 py-1 rounded-full font-semibold" style={{ background: "#fff", border: "1px solid rgba(11,47,99,0.10)", color: "var(--cinza)" }}>
+            {municipio.regiao}
           </span>
-          {municipio.faixa_pop && <span>Faixa: {municipio.faixa_pop}</span>}
-          {totalPub > 0 && (
-            <span
-              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                pctPubli >= 80
-                  ? "bg-green-100 text-green-900"
-                  : pctPubli >= 50
-                  ? "bg-amber-100 text-amber-900"
-                  : "bg-red-100 text-red-900"
-              }`}
-              title={`${pubCount} de ${totalPub} relatórios fiscais obrigatórios publicados`}
-            >
-              {pctPubli >= 80 ? "✓" : pctPubli >= 50 ? "⚠" : "✗"} Transparência: {pctPubli}%
-            </span>
-          )}
-          {ndpCount > 0 && (
-            <span className="text-xs text-red-700">
-              {ndpCount} relatório(s) não publicados pelo município
-            </span>
-          )}
-        </div>
-      </header>
+        )}
+        {municipio.faixa_pop && (
+          <span className="px-2.5 py-1 rounded-full font-semibold" style={{ background: "#fff", border: "1px solid rgba(11,47,99,0.10)", color: "var(--cinza)" }}>
+            Faixa: {municipio.faixa_pop}
+          </span>
+        )}
+        {totalPub > 0 && (
+          <span
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-bold"
+            style={{
+              background: pctPubli >= 80 ? "rgba(78,181,31,0.13)" : pctPubli >= 50 ? "rgba(217,119,6,0.13)" : "rgba(220,38,38,0.13)",
+              color: pctPubli >= 80 ? "var(--verde-2)" : pctPubli >= 50 ? "#d97706" : "#dc2626",
+            }}
+            title={`${pubCount} de ${totalPub} relatórios fiscais obrigatórios publicados`}
+          >
+            {pctPubli >= 80 ? "✓" : pctPubli >= 50 ? "⚠" : "✗"} Transparência {pctPubli}%
+          </span>
+        )}
+        {ndpCount > 0 && (
+          <span className="text-xs" style={{ color: "#dc2626" }}>
+            {ndpCount} relatório(s) não publicados
+          </span>
+        )}
+      </div>
 
-      {/* Disclaimer de período se município está defasado */}
+      {/* Disclaimer de período defasado */}
       {periodoInfo.proxAno && periodoInfo.munisComAnoMaisRecente > 50 && (
-        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm flex items-start gap-3">
+        <div
+          className="p-4 rounded-2xl text-sm flex items-start gap-3"
+          style={{ background: "linear-gradient(135deg, rgba(11,47,99,0.04), rgba(78,181,31,0.05))", border: "1px solid rgba(11,47,99,0.10)" }}
+        >
           <div className="text-2xl">⏰</div>
-          <div className="flex-1 text-blue-900">
+          <div className="flex-1" style={{ color: "var(--azul)" }}>
             <strong>{municipio.nome}</strong> ainda não publicou RREO de <strong>{periodoInfo.proxAno}</strong>.
             Dados exibidos são do exercício <strong>{periodoInfo.ano}/B{periodoInfo.bim}</strong>{" "}
-            (último publicado). Outros <strong>{periodoInfo.munisComAnoMaisRecente}</strong> municípios
-            paulistas já publicaram dados de {periodoInfo.proxAno}.
+            (último publicado). Outros <strong>{periodoInfo.munisComAnoMaisRecente}</strong> municípios paulistas já publicaram dados de {periodoInfo.proxAno}.
           </div>
         </div>
       )}
