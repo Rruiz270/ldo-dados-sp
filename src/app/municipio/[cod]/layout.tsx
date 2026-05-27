@@ -1,5 +1,16 @@
 import { sql } from "@/lib/db";
-import Link from "next/link";
+import {
+  Gauge,
+  ClipboardList,
+  Scale,
+  GraduationCap,
+  Stethoscope,
+  Wallet,
+  BarChart3,
+  AlertTriangle,
+  Bell,
+  type LucideIcon,
+} from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -8,16 +19,16 @@ interface LayoutProps {
   params: Promise<{ cod: string }>;
 }
 
-const MODULOS = [
-  { slug: "",             label: "Painel preventivo",      emoji: "🟢" },
-  { slug: "planejamento", label: "Planejamento e LDO",     emoji: "📋" },
-  { slug: "lrf",          label: "Limites da LRF",          emoji: "⚖️" },
-  { slug: "educacao",     label: "Educação e Fundeb",       emoji: "🎓" },
-  { slug: "saude",        label: "Saúde",                   emoji: "🏥" },
-  { slug: "divida",       label: "Dívida e caixa",          emoji: "💰" },
-  { slug: "contexto",     label: "Contexto externo",        emoji: "📊" },
-  { slug: "riscos",       label: "Riscos fiscais",          emoji: "⚠️" },
-  { slug: "alertas",      label: "Alertas e providências",  emoji: "🔔" },
+const MODULOS: Array<{ slug: string; label: string; Icon: LucideIcon }> = [
+  { slug: "",             label: "Painel preventivo",      Icon: Gauge },
+  { slug: "planejamento", label: "Planejamento e LDO",     Icon: ClipboardList },
+  { slug: "lrf",          label: "Limites da LRF",          Icon: Scale },
+  { slug: "educacao",     label: "Educação e Fundeb",       Icon: GraduationCap },
+  { slug: "saude",        label: "Saúde",                   Icon: Stethoscope },
+  { slug: "divida",       label: "Dívida e caixa",          Icon: Wallet },
+  { slug: "contexto",     label: "Contexto externo",        Icon: BarChart3 },
+  { slug: "riscos",       label: "Riscos fiscais",          Icon: AlertTriangle },
+  { slug: "alertas",      label: "Alertas e providências",  Icon: Bell },
 ];
 
 export default async function MunicipioLayout({ children, params }: LayoutProps) {
@@ -38,12 +49,11 @@ export default async function MunicipioLayout({ children, params }: LayoutProps)
 
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8">
-      {/* Header do município */}
       <div className="mb-6 flex flex-col gap-3">
         <div className="text-xs uppercase font-semibold tracking-widest" style={{ color: "var(--cinza)" }}>
-          <Link href={`${basePath}/`} className="hover:underline" style={{ color: "var(--azul)" }}>
+          <a href={`${basePath}/`} className="hover:underline" style={{ color: "var(--azul)" }}>
             Município
-          </Link>
+          </a>
           <span className="mx-2">/</span>
           <span>{cod}</span>
         </div>
@@ -74,7 +84,6 @@ export default async function MunicipioLayout({ children, params }: LayoutProps)
         </div>
       </div>
 
-      {/* Layout: nav lateral à esquerda, conteúdo à direita */}
       <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-5 md:gap-7">
         <aside
           className="md:sticky md:top-20 md:self-start md:max-h-[calc(100vh-100px)] md:overflow-auto rounded-[22px] p-3 md:p-4"
@@ -91,20 +100,20 @@ export default async function MunicipioLayout({ children, params }: LayoutProps)
             Módulos
           </h3>
           <nav className="flex md:flex-col gap-1 overflow-x-auto md:overflow-visible">
-            {MODULOS.map((m) => {
-              const href = m.slug
-                ? `${basePath}/municipio/${cod}/${m.slug}`
+            {MODULOS.map(({ slug, label, Icon }) => {
+              const href = slug
+                ? `${basePath}/municipio/${cod}/${slug}`
                 : `${basePath}/municipio/${cod}`;
               return (
-                <Link
-                  key={m.slug || "root"}
+                <a
+                  key={slug || "root"}
                   href={href}
-                  className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap hover:bg-slate-100 transition-colors"
+                  className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap hover:bg-slate-100 transition-colors"
                   style={{ color: "var(--grafite)" }}
                 >
-                  <span className="text-base" aria-hidden>{m.emoji}</span>
-                  <span>{m.label}</span>
-                </Link>
+                  <Icon size={18} strokeWidth={1.75} style={{ color: "var(--azul-2)" }} aria-hidden />
+                  <span>{label}</span>
+                </a>
               );
             })}
           </nav>

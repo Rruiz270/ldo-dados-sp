@@ -1,5 +1,19 @@
 import { sql } from "@/lib/db";
 import { MunicipioSearch } from "@/components/MunicipioSearch";
+import {
+  Scale,
+  ClipboardList,
+  BarChart3,
+  AlertTriangle,
+  FileText,
+  Crown,
+  UserCog,
+  ShieldCheck,
+  BookOpen,
+  Landmark,
+  Search,
+  type LucideIcon,
+} from "lucide-react";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -10,12 +24,12 @@ interface Row {
   populacao: number;
 }
 
-const PILARES = [
-  { titulo: "Gestão fiscal", icon: "⚖️", desc: "Limites da LRF, RCL, despesa com pessoal." },
-  { titulo: "Planejamento e LDO", icon: "📋", desc: "Metas fiscais, programas, ações, execução." },
-  { titulo: "Indicadores externos", icon: "📊", desc: "IDEB, IEGM, IGM, ambientais e socio." },
-  { titulo: "Riscos e soluções", icon: "⚠️", desc: "Diagnóstico preventivo e providências." },
-  { titulo: "Relatórios gerenciais", icon: "📑", desc: "PDF, XLSX, exportação por perfil." },
+const PILARES: Array<{ titulo: string; Icon: LucideIcon; desc: string }> = [
+  { titulo: "Gestão fiscal",         Icon: Scale,          desc: "Limites da LRF, RCL, despesa com pessoal." },
+  { titulo: "Planejamento e LDO",    Icon: ClipboardList,  desc: "Metas fiscais, programas, ações, execução." },
+  { titulo: "Indicadores externos",  Icon: BarChart3,      desc: "IDEB, IEGM, IGM, ambientais e socio." },
+  { titulo: "Riscos e soluções",     Icon: AlertTriangle,  desc: "Diagnóstico preventivo e providências." },
+  { titulo: "Relatórios gerenciais", Icon: FileText,       desc: "PDF, XLSX, exportação por perfil." },
 ];
 
 const MENSAGENS = [
@@ -85,18 +99,18 @@ export default async function Home() {
             </p>
 
             <div className="flex flex-wrap gap-2 mt-6">
-              {PILARES.map((p) => (
+              {PILARES.map(({ titulo, Icon }) => (
                 <span
-                  key={p.titulo}
-                  className="px-3 py-2 rounded-full text-xs font-bold"
+                  key={titulo}
+                  className="inline-flex items-center gap-2 px-3 py-2 rounded-full text-xs font-bold"
                   style={{
                     background: "#fff",
                     border: "1px solid rgba(11,47,99,0.10)",
                     color: "var(--azul)",
                   }}
                 >
-                  <span className="mr-1">{p.icon}</span>
-                  {p.titulo}
+                  <Icon size={14} strokeWidth={2} aria-hidden />
+                  {titulo}
                 </span>
               ))}
             </div>
@@ -205,15 +219,20 @@ export default async function Home() {
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {PERFIS.map((p) => (
+          {PERFIS.map(({ Icon, role, desc }) => (
             <div
-              key={p.role}
+              key={role}
               className="p-5 rounded-2xl"
               style={{ background: "white", border: "1px solid rgba(11,47,99,0.09)", boxShadow: "0 8px 22px rgba(11,47,99,0.06)" }}
             >
-              <div className="text-2xl mb-2">{p.emoji}</div>
-              <div className="font-bold text-base" style={{ color: "var(--azul)" }}>{p.role}</div>
-              <p className="text-xs mt-1" style={{ color: "var(--cinza)" }}>{p.desc}</p>
+              <div
+                className="inline-flex items-center justify-center w-10 h-10 rounded-xl mb-3"
+                style={{ background: "rgba(11,47,99,0.07)", color: "var(--azul)" }}
+              >
+                <Icon size={22} strokeWidth={1.75} />
+              </div>
+              <div className="font-bold text-base" style={{ color: "var(--azul)" }}>{role}</div>
+              <p className="text-xs mt-1" style={{ color: "var(--cinza)" }}>{desc}</p>
             </div>
           ))}
         </div>
@@ -222,13 +241,13 @@ export default async function Home() {
   );
 }
 
-const PERFIS = [
-  { emoji: "🟢", role: "Prefeito", desc: "Visão estratégica da situação fiscal, administrativa e dos riscos do Município." },
-  { emoji: "🔵", role: "Secretário de Finanças", desc: "Controle da execução orçamentária, receita, despesa, caixa, metas fiscais e limites legais." },
-  { emoji: "🟠", role: "Vereador / Controle", desc: "Fiscalização preventiva, conformidade legal e acompanhamento de providências." },
-  { emoji: "📚", role: "Secretarias setoriais", desc: "Acompanhamento de programas, ações, metas físicas e orçamento da pasta." },
-  { emoji: "🏛️", role: "Câmara Municipal", desc: "Acompanhamento legislativo, emendas, metas e execução orçamentária." },
-  { emoji: "🔍", role: "Tribunal de Contas", desc: "Evidências de acompanhamento preventivo e histórico de providências." },
+const PERFIS: Array<{ Icon: LucideIcon; role: string; desc: string }> = [
+  { Icon: Crown,        role: "Prefeito",               desc: "Visão estratégica da situação fiscal, administrativa e dos riscos do Município." },
+  { Icon: UserCog,      role: "Secretário de Finanças", desc: "Controle da execução orçamentária, receita, despesa, caixa, metas fiscais e limites legais." },
+  { Icon: ShieldCheck,  role: "Vereador / Controle",    desc: "Fiscalização preventiva, conformidade legal e acompanhamento de providências." },
+  { Icon: BookOpen,     role: "Secretarias setoriais",  desc: "Acompanhamento de programas, ações, metas físicas e orçamento da pasta." },
+  { Icon: Landmark,     role: "Câmara Municipal",       desc: "Acompanhamento legislativo, emendas, metas e execução orçamentária." },
+  { Icon: Search,       role: "Tribunal de Contas",     desc: "Evidências de acompanhamento preventivo e histórico de providências." },
 ];
 
 function Eyebrow({ children, small }: { children: React.ReactNode; small?: boolean }) {

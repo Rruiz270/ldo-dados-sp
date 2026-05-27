@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { lrfColor } from "@/lib/theme";
+import { UserCog, Crown, ShieldCheck, AlertTriangle, Coins, BarChart3, Check, X, type LucideIcon } from "lucide-react";
 
 interface Municipio {
   cod_ibge: number;
@@ -59,10 +60,10 @@ interface RankingPos {
 
 type Tab = "secretario" | "prefeito" | "vereador";
 
-const TABS: { id: Tab; label: string; emoji: string; subtitle: string }[] = [
-  { id: "secretario", label: "Secretário", emoji: "🔵", subtitle: "Visão técnica e projeção" },
-  { id: "prefeito", label: "Prefeito", emoji: "🟢", subtitle: "Narrativa executiva" },
-  { id: "vereador", label: "Vereador", emoji: "🟠", subtitle: "Fiscalização e evidência" },
+const TABS: { id: Tab; label: string; Icon: LucideIcon; subtitle: string }[] = [
+  { id: "secretario", label: "Secretário", Icon: UserCog,     subtitle: "Visão técnica e projeção" },
+  { id: "prefeito",   label: "Prefeito",   Icon: Crown,       subtitle: "Narrativa executiva" },
+  { id: "vereador",   label: "Vereador",   Icon: ShieldCheck, subtitle: "Fiscalização e evidência" },
 ];
 
 export function MunicipioTabs({
