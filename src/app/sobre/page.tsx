@@ -1,0 +1,93 @@
+import { Section, Eyebrow } from "@/components/ModuloUI";
+
+export const dynamic = "force-dynamic";
+
+const OBJETIVOS = [
+  "Centralizar os principais dados fiscais e orçamentários do Município.",
+  "Calcular automaticamente índices legais e gerenciais.",
+  "Acompanhar a execução da LOA e das metas da LDO.",
+  "Monitorar o cumprimento dos limites da Lei de Responsabilidade Fiscal.",
+  "Acompanhar os mínimos constitucionais de educação e saúde.",
+  "Acompanhar a aplicação dos recursos do Fundeb.",
+  "Controlar dívida, operações de crédito, garantias, restos a pagar e disponibilidade de caixa.",
+  "Emitir alertas preventivos por meio de semáforo fiscal.",
+  "Criar histórico comparativo mensal, bimestral, quadrimestral e anual.",
+  "Apoiar a governança fiscal, o planejamento, a transparência e a gestão orientada por evidências.",
+];
+
+export default function SobrePage() {
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12 space-y-7">
+      <header className="mb-2">
+        <Eyebrow>Documento institucional</Eyebrow>
+        <h1
+          className="font-bold mt-3"
+          style={{
+            color: "var(--azul)",
+            fontSize: "clamp(34px, 5vw, 56px)",
+            letterSpacing: "-0.04em",
+            lineHeight: 1.05,
+          }}
+        >
+          Sobre o Radar Fiscal Municipal{" "}
+          <span style={{ color: "var(--verde-2)" }}>360</span>
+        </h1>
+        <p
+          className="font-bold mt-2"
+          style={{ color: "var(--verde-2)", fontSize: "clamp(18px, 2vw, 22px)" }}
+        >
+          Monitoramento inteligente para decisões seguras
+        </p>
+      </header>
+
+      <Section title="Apresentação" subtitle="Por que o Radar 360 existe">
+        <div className="px-5 py-5 space-y-3 text-sm md:text-base" style={{ color: "var(--grafite)", lineHeight: 1.7 }}>
+          <p>
+            O <strong>Radar Fiscal Municipal 360</strong> é uma solução tecnológica voltada à gestão pública
+            municipal, concebida para consolidar dados fiscais, orçamentários, financeiros, legais,
+            operacionais e gerenciais em um ambiente único de acompanhamento preventivo.
+          </p>
+          <p>
+            Permite que prefeitos, secretários, controladores internos, contadores, procuradores, vereadores
+            e equipes técnicas acompanhem, de forma simples e objetiva, a situação fiscal do Município, a
+            execução orçamentária, o cumprimento das metas da LDO, os limites legais, os indicadores externos
+            de contexto e os riscos que possam comprometer a responsabilidade fiscal.
+          </p>
+          <p>
+            O sistema opera como uma <strong>plataforma de inteligência fiscal e gerencial</strong>,
+            transformando dados técnicos em alertas, painéis, relatórios, providências recomendadas, soluções
+            possíveis e histórico de acompanhamento.
+          </p>
+        </div>
+      </Section>
+
+      <Section title="Objetivos específicos" subtitle="O que o sistema entrega">
+        <ul className="px-6 py-5 space-y-2 text-sm md:text-base" style={{ color: "var(--grafite)" }}>
+          {OBJETIVOS.map((o, i) => (
+            <li key={i} className="flex gap-3">
+              <span style={{ color: "var(--verde-2)", fontWeight: 800 }}>✓</span>
+              <span>{o}</span>
+            </li>
+          ))}
+        </ul>
+      </Section>
+
+      <Section title="Identidade visual" subtitle="Versões do logo aplicadas pela plataforma">
+        <div className="p-5">
+          <img
+            src={`${basePath}/brand/radar-360-variantes.png`}
+            alt="Versões sugeridas da marca Radar Fiscal 360"
+            className="w-full h-auto rounded-2xl"
+            style={{ border: "1px solid rgba(11,47,99,0.07)" }}
+          />
+          <p className="text-xs mt-3 italic" style={{ color: "var(--cinza)" }}>
+            Versão 1 (principal leve) — Versão 2 (institucional completa) — Versão 3 (reduzida) — Versão 4 (símbolo).
+            Aplicação conforme o brandbook oficial.
+          </p>
+        </div>
+      </Section>
+    </div>
+  );
+}

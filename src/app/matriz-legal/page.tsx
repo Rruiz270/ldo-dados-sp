@@ -1,5 +1,5 @@
 import { sql } from "@/lib/db";
-import { Section, Table, Td, Empty } from "@/components/ModuloUI";
+import { Section, Table, Td, Empty, Eyebrow } from "@/components/ModuloUI";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -45,16 +45,25 @@ export default async function MatrizLegalPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 space-y-8">
-      <div>
-        <div className="text-xs uppercase tracking-widest text-slate-500 font-medium">Radar Fiscal 360</div>
-        <h1 className="text-3xl md:text-4xl font-bold mt-1" style={{ color: "#0A2463", fontFamily: "var(--font-display)" }}>
+    <div className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12 space-y-7">
+      <header>
+        <Eyebrow>Base normativa do sistema</Eyebrow>
+        <h1
+          className="font-bold mt-3"
+          style={{
+            color: "var(--azul)",
+            fontSize: "clamp(34px, 5vw, 52px)",
+            letterSpacing: "-0.04em",
+            lineHeight: 1.05,
+          }}
+        >
           Matriz Legal
         </h1>
-        <p className="text-sm text-slate-600 mt-2">
-          Cada indicador, alerta e providência do Radar 360 é vinculado à norma que o sustenta — permitindo rastreabilidade técnica das análises.
+        <p className="text-sm md:text-base mt-3 max-w-3xl" style={{ color: "var(--cinza)" }}>
+          Cada indicador, alerta e providência do Radar 360 é vinculado à norma que o sustenta —
+          permitindo rastreabilidade técnica das análises e sustentação jurídica das decisões.
         </p>
-      </div>
+      </header>
 
       <Section title="Base normativa dos indicadores"
                subtitle="Constituição Federal, LRF, Lei 4.320/64, Lei do Fundeb, LC 141 (Saúde) e resoluções do Senado.">
