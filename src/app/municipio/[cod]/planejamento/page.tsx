@@ -1,5 +1,5 @@
 import { sql } from "@/lib/db";
-import { Section, Table, Td, Empty, Placeholder } from "@/components/ModuloUI";
+import { Section, Table, Td, Empty, Placeholder, fmtDate } from "@/components/ModuloUI";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -86,7 +86,7 @@ export default async function PlanejamentoPage({ params }: PageProps) {
                   ? `${d.inicio_exercicio ?? "?"} – ${d.fim_exercicio ?? "?"}`
                   : d.exercicio ?? "—"}</Td>
                 <Td className="text-xs">{d.numero_lei || "—"}</Td>
-                <Td className="text-xs text-slate-500">{d.data_lei?.slice(0, 10) ?? "—"}</Td>
+                <Td className="text-xs text-slate-500">{fmtDate(d.data_lei)}</Td>
                 <Td>{d.validado
                   ? <span className="text-green-700 font-medium">✓</span>
                   : <span className="text-slate-400">pendente</span>}</Td>

@@ -1,5 +1,5 @@
 import { sql } from "@/lib/db";
-import { Section, Table, Td, Placeholder } from "@/components/ModuloUI";
+import { Section, Table, Td, Placeholder, fmtDate } from "@/components/ModuloUI";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -93,9 +93,9 @@ export default async function AlertasPage({ params }: PageProps) {
               <tr key={p.id} className="border-t border-slate-100">
                 <Td>{p.descricao}</Td>
                 <Td className="text-xs">{p.responsavel ?? "—"}</Td>
-                <Td className="text-xs">{p.prazo?.slice(0, 10) ?? "—"}</Td>
+                <Td className="text-xs">{fmtDate(p.prazo)}</Td>
                 <Td><span className="text-xs capitalize">{p.status}</span></Td>
-                <Td className="text-xs text-slate-500">{p.criado_em?.slice(0, 10)}</Td>
+                <Td className="text-xs text-slate-500">{fmtDate(p.criado_em)}</Td>
               </tr>
             ))}
           </Table>

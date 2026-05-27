@@ -187,6 +187,13 @@ export function fmtNum(v: string | number | null | undefined): string {
   return Number.isFinite(n) ? n.toLocaleString("pt-BR") : "—";
 }
 
+// Formata DATE/TIMESTAMPTZ vindo do Neon (pode ser Date object ou string)
+export function fmtDate(d: Date | string | null | undefined): string {
+  if (!d) return "—";
+  if (d instanceof Date) return d.toISOString().slice(0, 10);
+  return String(d).slice(0, 10);
+}
+
 // Semáforo para indicadores com mínimo legal (educação 25%, saúde 15%, fundeb 70% etc.)
 export function SemaforoMin({
   valor,

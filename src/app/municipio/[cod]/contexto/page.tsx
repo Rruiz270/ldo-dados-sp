@@ -1,5 +1,5 @@
 import { sql } from "@/lib/db";
-import { Section, Table, Td, Empty, Placeholder } from "@/components/ModuloUI";
+import { Section, Table, Td, Empty, Placeholder, fmtDate } from "@/components/ModuloUI";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -10,12 +10,13 @@ interface ExtRow {
   fonte_id: string;
   indicador: string;
   categoria: string | null;
-  periodo_referencia: string;
+  periodo_referencia: Date | string;
   valor_numerico: string | null;
   valor_texto: string | null;
   unidade: string | null;
   metadata: Record<string, unknown> | null;
 }
+
 
 export default async function ContextoPage({ params }: PageProps) {
   const { cod } = await params;
@@ -69,7 +70,7 @@ export default async function ContextoPage({ params }: PageProps) {
           <Table cols={["Período", "Fonte", "Categoria", "Indicador", "Valor", "Unidade"]}>
             {rows.map((r, i) => (
               <tr key={i} className="border-t border-slate-100">
-                <Td>{r.periodo_referencia?.slice(0, 10) ?? "—"}</Td>
+                <Td>{fmtDate(r.periodo_referencia)}</Td>
                 <Td className="text-xs text-slate-500">{r.fonte_id}</Td>
                 <Td className="text-xs text-slate-500">{r.categoria ?? "—"}</Td>
                 <Td className="font-medium">{r.indicador.replace(/_/g, " ")}</Td>

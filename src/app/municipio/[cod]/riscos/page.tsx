@@ -1,5 +1,5 @@
 import { sql } from "@/lib/db";
-import { Section, Table, Td, Empty, Placeholder } from "@/components/ModuloUI";
+import { Section, Table, Td, Empty, Placeholder, fmtDate } from "@/components/ModuloUI";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -74,7 +74,7 @@ export default async function RiscosPage({ params }: PageProps) {
                 <Td className="font-medium">{r.titulo}</Td>
                 <Td className="text-xs text-slate-500">{r.fonte_indicador ?? "—"}</Td>
                 <Td><span className="text-xs capitalize">{r.status}</span></Td>
-                <Td className="text-xs text-slate-500">{r.identificado_em?.slice(0, 10)}</Td>
+                <Td className="text-xs text-slate-500">{fmtDate(r.identificado_em)}</Td>
               </tr>
             ))}
           </Table>
