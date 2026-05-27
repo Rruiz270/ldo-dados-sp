@@ -2,8 +2,11 @@
 /**
  * Roda todas as migrations em ordem. Idempotente (CREATE TABLE IF NOT EXISTS).
  * Uso: npm run db:migrate
+ *
+ * Usa `postgres` lib (não @neondatabase/serverless): o driver Neon serverless
+ * quebra em multi-statement scripts no novo host format .c-N. (gotcha conhecido).
  */
-import { neon } from "@neondatabase/serverless";
+import postgres from "postgres";
 import { readdirSync, readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -16,7 +19,8 @@ if (!url) {
   console.error("DATABASE_URL not set. Coloque em .env.local e rode com `npm run db:migrate`.");
   process.exit(1);
 }
-const sql = neon(url);
+
+const sql = postgres(url, { prepare: false, max: 1 });
 
 const files = readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith(".sql")).sort();
 console.log(`Encontradas ${files.length} migrations:`);
@@ -26,14 +30,16 @@ console.log();
 for (const f of files) {
   process.stdout.write(`▶ ${f} ... `);
   const sqlText = readFileSync(join(MIGRATIONS_DIR, f), "utf-8");
-  // neon serverless aceita execução de múltiplos statements via .query (não tagged)
   try {
-    await sql.query(sqlText);
+    await sql.unsafe(sqlText);
     console.log("ok");
   } catch (e) {
     console.error("FALHOU");
     console.error(e);
+    await sql.end();
     process.exit(1);
   }
 }
+
+await sql.end();
 console.log("\nMigrations concluídas.");

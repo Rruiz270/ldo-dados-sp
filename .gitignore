@@ -7,3 +7,16 @@ node_modules
 *.tsbuildinfo
 next-env.d.ts
 .vercel
+
+# Pipeline (scrapers SICONFI/Audesp/FNDE) — raw data fica em disco, não em git
+pipeline/siconfi_data/
+pipeline/audesp_data/
+pipeline/fnde_data_2026/
+pipeline/pdfs/
+pipeline/relatorios/
+pipeline/relatorios-apm/
+pipeline/logs/
+pipeline/__pycache__/
+pipeline/*.db
+pipeline/*.db-shm
+pipeline/*.db-wal

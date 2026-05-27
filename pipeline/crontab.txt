@@ -1,0 +1,7 @@
+# Adicionar ao crontab do usuário com:
+#   crontab -e
+# E colar a linha abaixo (já com path absoluto do run_daily.sh).
+# Verificar com: crontab -l
+
+# Roda 4h da manhã todos os dias (Mac mini 24/7).
+0 4 * * * /Users/raphaelruiz/Projects/ldo-dados-sp/pipeline/run_daily.sh

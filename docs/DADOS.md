@@ -35,10 +35,10 @@
 │  Cron 4h diário (Mac mini, run_daily.sh)                     │
 │                                                                │
 │  ① siconfi_scraper.py   → SICONFI/Tesouro Nacional API       │
-│     ↓ 7.6 GB JSON+CSV em ~/Downloads/fundeb-sp-2026/siconfi_data│
+│     ↓ 7.6 GB JSON+CSV em ~/Projects/ldo-dados-sp/pipeline/siconfi_data│
 │                                                                │
 │  ② audesp_downloader.py → TCE-SP bulk CSV/ZIP downloads      │
-│     ↓ 73 MB em ~/Downloads/fundeb-sp-2026/audesp_data        │
+│     ↓ 73 MB em ~/Projects/ldo-dados-sp/pipeline/audesp_data        │
 │                                                                │
 │  ③ sync_to_neon.py      → upserta tudo no Neon Postgres      │
 │     ↓                                                          │
@@ -78,7 +78,7 @@
 **Periodicidade:** bimestral (1 = jan-fev, 2 = mar-abr, ..., 6 = nov-dez)
 **Prazo legal de publicação:** 30 dias após fim do bimestre (LRF Art. 52)
 **Quem reporta:** prefeito/secretário de finanças via portal SICONFI
-**Arquivo local:** `~/Downloads/fundeb-sp-2026/siconfi_data/rreo_{ano}_bim{N}.json` (e `.csv`)
+**Arquivo local:** `~/Projects/ldo-dados-sp/pipeline/siconfi_data/rreo_{ano}_bim{N}.json` (e `.csv`)
 **Status por município:** `rreo_{ano}_bim{N}.status.json` (PUBLICADO | NAO_PUBLICADO | ERRO_COLETA)
 **Cobertura atual:** ~530/645 municípios por bimestre (82% — gap estrutural, ~115 nunca publicam no prazo)
 
@@ -156,7 +156,7 @@
 
 **Periodicidade:** anual
 **Prazo legal:** 30/abr do ano seguinte (LRF Art. 51)
-**Arquivo local:** `~/Downloads/fundeb-sp-2026/siconfi_data/dca_{ano}.json`
+**Arquivo local:** `~/Projects/ldo-dados-sp/pipeline/siconfi_data/dca_{ano}.json`
 **Cobertura atual:** 645/645 (2024) | 610/645 (2025, 35 em atraso)
 
 #### Anexos coletados (7)
@@ -190,7 +190,7 @@
 
 **Periodicidade:** quadrimestral (Q1=jan-abr, Q2=mai-ago, Q3=set-dez)
 **Prazo legal:** 30 dias após fim do quadrimestre (LRF Art. 55)
-**Arquivo local:** `~/Downloads/fundeb-sp-2026/siconfi_data/rgf_{ano}_q{N}.json`
+**Arquivo local:** `~/Projects/ldo-dados-sp/pipeline/siconfi_data/rgf_{ano}_q{N}.json`
 **Cobertura atual:** ~525-530/645 por quadrimestre
 **Periodicidade alternativa (S):** semestral, só pra municípios < 50k hab que escolheram simplificado
 
@@ -229,7 +229,7 @@
 
 ### 3.4 Audesp · Análises 🎯
 
-**Arquivo local:** `~/Downloads/fundeb-sp-2026/audesp_data/analises/resultado_analises_audesp.zip` → `resultado_analises_audesp.csv`
+**Arquivo local:** `~/Projects/ldo-dados-sp/pipeline/audesp_data/analises/resultado_analises_audesp.zip` → `resultado_analises_audesp.csv`
 **Encoding:** latin-1 (precisa converter pra UTF-8)
 **Separador:** `;`
 **Decimal:** vírgula (`,`)
@@ -266,7 +266,7 @@
 
 ### 3.5 Audesp · RCL Completo
 
-**Arquivo local:** `~/Downloads/fundeb-sp-2026/audesp_data/rcl/rcl_completo.zip` → `rcl_completo.csv`
+**Arquivo local:** `~/Projects/ldo-dados-sp/pipeline/audesp_data/rcl/rcl_completo.zip` → `rcl_completo.csv`
 **Atualização:** semanal (TCE-SP atualiza todo sábado madrugada)
 **Cobertura:** mensal por município, 2015-atual
 
@@ -277,7 +277,7 @@
 
 ### 3.6 Audesp · Receitas anuais
 
-**Arquivo local:** `~/Downloads/fundeb-sp-2026/audesp_data/receitas/receitas-{ano}.zip`
+**Arquivo local:** `~/Projects/ldo-dados-sp/pipeline/audesp_data/receitas/receitas-{ano}.zip`
 **Cobertura:** 2024, 2025 (2026 ainda não publicado)
 **Atualização:** semanal
 
@@ -288,7 +288,7 @@
 
 ### 3.7 Audesp · Dívida Ativa
 
-**Arquivo local:** `~/Downloads/fundeb-sp-2026/audesp_data/divida-ativa/Divida_Ativa_2019_2024.csv`
+**Arquivo local:** `~/Projects/ldo-dados-sp/pipeline/audesp_data/divida-ativa/Divida_Ativa_2019_2024.csv`
 **Cobertura:** 2019-2024 consolidado
 
 - Estoque de dívida ativa municipal (IPTU/ISS/multas não pagos). Indicador de capacidade de arrecadação.
@@ -298,7 +298,7 @@
 
 ### 3.8 Audesp · Alertas (LEGADO)
 
-**Arquivo local:** `~/Downloads/fundeb-sp-2026/audesp_data/alertas/alertas_analitico.csv`
+**Arquivo local:** `~/Projects/ldo-dados-sp/pipeline/audesp_data/alertas/alertas_analitico.csv`
 **Status:** ⚠️ **abandonado pelo TCE-SP em 2019** (Last-Modified 07/jun/2019)
 **Uso atual:** referência histórica apenas. Não use pra dados pós-2019.
 
