@@ -3,6 +3,7 @@ import { Section, Eyebrow, Placeholder } from "@/components/ModuloUI";
 import { getPerfilAtivo } from "@/lib/perfil";
 import { notFound } from "next/navigation";
 import { atualizarProvidencia, type ProvidenciaStatus } from "../actions";
+import { urlSeguraParaHref } from "@/lib/url-safe";
 import { Calendar, User, Paperclip, ArrowLeft } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -187,8 +188,8 @@ export default async function ProvidenciaDetalhe({ params }: PageProps) {
             <div><strong>Prazo:</strong> {p.prazo ? fmtData(p.prazo) : "—"}</div>
             <div>
               <strong>Evidência:</strong>{" "}
-              {p.evidencia_url ? (
-                <a href={p.evidencia_url} target="_blank" rel="noopener" className="underline" style={{ color: "var(--azul-2)" }}>
+              {urlSeguraParaHref(p.evidencia_url) ? (
+                <a href={urlSeguraParaHref(p.evidencia_url)!} target="_blank" rel="noopener noreferrer" className="underline" style={{ color: "var(--azul-2)" }}>
                   abrir documento
                 </a>
               ) : "—"}
@@ -236,14 +237,14 @@ export default async function ProvidenciaDetalhe({ params }: PageProps) {
       </Section>
 
       {/* Evidência atual */}
-      {p.evidencia_url && (
+      {urlSeguraParaHref(p.evidencia_url) && (
         <Section title="Evidência registrada">
           <div className="p-4">
             <a
-              href={p.evidencia_url}
+              href={urlSeguraParaHref(p.evidencia_url)!}
               target="_blank"
-              rel="noopener"
-              className="inline-flex items-center gap-2 text-sm font-semibold"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-sm font-semibold break-all"
               style={{ color: "var(--azul-2)" }}
             >
               <Paperclip size={14} aria-hidden /> {p.evidencia_url}
