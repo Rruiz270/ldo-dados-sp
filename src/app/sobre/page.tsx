@@ -90,6 +90,58 @@ export default function SobrePage() {
           </p>
         </div>
       </Section>
+
+      {/* Instituto i10 */}
+      <section
+        className="rounded-[28px] overflow-hidden"
+        style={{
+          background: "linear-gradient(135deg, #0b2f63 0%, #0f4f8f 100%)",
+          boxShadow: "0 18px 45px rgba(11,47,99,0.18)",
+        }}
+      >
+        <div className="p-7 md:p-10 grid grid-cols-1 md:grid-cols-[1fr_1.4fr] gap-6 items-center text-white">
+          <div>
+            <div
+              className="text-[10px] uppercase font-bold tracking-widest mb-2"
+              style={{ color: "#00E5A0", letterSpacing: "0.15em" }}
+            >
+              Instituto idealizador
+            </div>
+            <h2
+              className="font-bold text-3xl md:text-4xl mb-3"
+              style={{ letterSpacing: "-0.04em", lineHeight: 1.05 }}
+            >
+              Instituto <span style={{ color: "#00E5A0" }}>i10</span>
+            </h2>
+            <p className="text-sm md:text-base font-semibold" style={{ color: "rgba(255,255,255,0.95)" }}>
+              Pesquisa, dados e tecnologia para gestão pública.
+            </p>
+          </div>
+          <div className="space-y-3 text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.88)" }}>
+            <p>
+              O <strong style={{ color: "white" }}>Instituto i10</strong> desenvolveu o Radar Fiscal Municipal 360
+              para apoiar prefeitos, secretários e gestores públicos a transformarem dados fiscais e orçamentários
+              em decisões responsáveis, transparentes e baseadas em evidência.
+            </p>
+            <p>
+              A plataforma consolida informações de SICONFI, AUDESP, SIOPE, SIOPS, INEP e demais fontes oficiais
+              em um ambiente único, com semáforo de risco, alertas preventivos, workflow de providências e
+              relatórios gerenciais por perfil.
+            </p>
+            <div className="pt-2">
+              <a
+                href="https://institutoi10.com.br"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-colors"
+                style={{ background: "#00E5A0", color: "#0b2f63" }}
+              >
+                Conhecer o Instituto i10
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
