@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { cookies } from "next/headers";
+import { PerfilSwitcher } from "@/components/PerfilSwitcher";
+import { PERFIL_DEFAULT, type PerfilId } from "@/lib/perfil";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
@@ -9,7 +12,9 @@ export const metadata: Metadata = {
     "Monitoramento inteligente para decisões seguras. Acompanhamento fiscal, orçamentário e gerencial dos 645 municípios de São Paulo.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const c = await cookies();
+  const perfilAtivo = (c.get("radar_perfil")?.value ?? PERFIL_DEFAULT) as PerfilId;
   return (
     <html lang="pt-BR">
       <head>
@@ -57,10 +62,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 style={{ width: "auto" }}
               />
             </a>
-            <nav className="flex items-center gap-2 md:gap-3 text-sm font-semibold">
+            <nav className="flex items-center gap-1 md:gap-2 text-sm font-semibold">
               <NavLink href={`${basePath}/`} label="Município" />
-              <NavLink href={`${basePath}/matriz-legal`} label="Matriz legal" />
+              <NavLink href={`${basePath}/matriz-legal`} label="Matriz" />
               <NavLink href={`${basePath}/sobre`} label="Sobre" />
+              <span className="ml-2"><PerfilSwitcher perfilInicial={perfilAtivo} /></span>
             </nav>
           </div>
         </header>

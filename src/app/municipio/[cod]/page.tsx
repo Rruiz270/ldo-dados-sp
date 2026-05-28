@@ -1,6 +1,8 @@
 import { sql } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { MunicipioTabs } from "@/components/MunicipioTabs";
+import { PainelPreventivo } from "@/components/PainelPreventivo";
+import { getPerfilAtivo } from "@/lib/perfil";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -67,6 +69,8 @@ export default async function MunicipioPage({ params }: PageProps) {
   const { cod } = await params;
   const codNum = parseInt(cod, 10);
   if (Number.isNaN(codNum)) notFound();
+
+  const perfil = await getPerfilAtivo();
 
   let municipio: Municipio | null = null;
   let indicadores: IndicadorLRF[] = [];
@@ -259,6 +263,14 @@ export default async function MunicipioPage({ params }: PageProps) {
         </div>
       )}
 
+      {/* Painel preventivo dinâmico — Módulo 3 */}
+      <PainelPreventivo
+        codIbge={codNum}
+        basePath={process.env.NEXT_PUBLIC_BASE_PATH || ""}
+        podeCriarProvidencia={perfil.podeCriarProvidencia}
+      />
+
+      {/* Visão técnica detalhada (mantida) */}
       <MunicipioTabs
         municipio={municipio}
         indicadores={indicadores}
