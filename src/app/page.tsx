@@ -70,7 +70,7 @@ export default async function Home() {
     <div className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12 space-y-8">
       {/* Hero */}
       <section
-        className="rounded-[32px] overflow-hidden"
+        className="rounded-[32px]"
         style={{
           background: "linear-gradient(135deg, rgba(255,255,255,0.96), rgba(244,249,255,0.96))",
           border: "1px solid rgba(11,47,99,0.08)",
