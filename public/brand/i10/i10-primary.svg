@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 100" width="320" height="100">
+  <title>Instituto i10 — Logo Principal</title>
+  <!-- Network Icon -->
+  <circle cx="20" cy="50" r="6" fill="#00B4D8"/>
+  <circle cx="55" cy="22" r="6" fill="#00E5A0"/>
+  <circle cx="90" cy="58" r="6" fill="#00B4D8"/>
+  <circle cx="125" cy="34" r="6" fill="#00B4D8"/>
+  <circle cx="160" cy="68" r="6" fill="#00E5A0"/>
+  <line x1="20" y1="50" x2="55" y2="22" stroke="url(#grad1)" stroke-width="2.5"/>
+  <line x1="55" y1="22" x2="90" y2="58" stroke="url(#grad1)" stroke-width="2.5"/>
+  <line x1="90" y1="58" x2="125" y2="34" stroke="url(#grad1)" stroke-width="2.5"/>
+  <line x1="125" y1="34" x2="160" y2="68" stroke="url(#grad1)" stroke-width="2.5"/>
+  <!-- Brand Name -->
+  <text x="185" y="52" font-family="Inter, sans-serif" font-weight="800" font-size="44" letter-spacing="-1" fill="#0A2463">i</text>
+  <text x="204" y="52" font-family="Inter, sans-serif" font-weight="800" font-size="44" letter-spacing="-1" fill="#00E5A0">10</text>
+  <!-- Subtitle -->
+  <text x="185" y="72" font-family="Inter, sans-serif" font-weight="400" font-size="14" letter-spacing="1" fill="#64748B">Instituto</text>
+  <defs>
+    <linearGradient id="grad1" x1="20" y1="50" x2="160" y2="50" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#00B4D8"/>
+      <stop offset="100%" stop-color="#00E5A0"/>
+    </linearGradient>
+  </defs>
+</svg>

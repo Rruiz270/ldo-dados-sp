@@ -59,23 +59,28 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           }}
         >
           <div className="max-w-7xl mx-auto px-4 md:px-6 py-3 flex items-center justify-between gap-3">
-            <a href={`${basePath}/`} className="flex items-center gap-3 group" style={{ color: "var(--azul)" }}>
+            <a href={`${basePath}/`} className="flex items-center gap-3 md:gap-4 group" style={{ color: "var(--azul)" }}>
               <img
                 src={`${basePath}/brand/radar-360-full.png`}
                 alt="Radar Fiscal 360 — Gestão Municipal"
-                className="h-9 md:h-10 transition-transform group-hover:scale-[1.02]"
+                className="h-12 md:h-14 transition-transform group-hover:scale-[1.02]"
                 style={{ width: "auto" }}
               />
               <span
-                className="hidden lg:flex items-center gap-1.5 pl-3 ml-1 text-[10px] uppercase font-bold tracking-widest border-l"
-                style={{
-                  color: "var(--cinza)",
-                  borderColor: "rgba(11,47,99,0.15)",
-                  letterSpacing: "0.1em",
-                }}
+                className="hidden md:flex items-center gap-3 pl-3 md:pl-4 border-l"
+                style={{ borderColor: "rgba(11,47,99,0.15)" }}
               >
-                uma solução
-                <strong style={{ color: "var(--azul)" }}>Instituto i10</strong>
+                <span
+                  className="text-[10px] uppercase font-bold tracking-widest"
+                  style={{ color: "var(--cinza)", letterSpacing: "0.12em" }}
+                >
+                  uma solução
+                </span>
+                <img
+                  src={`${basePath}/brand/i10/i10-primary.svg`}
+                  alt="Instituto i10"
+                  className="h-9 md:h-10 w-auto"
+                />
               </span>
             </a>
             <nav className="flex items-center gap-1 md:gap-2 text-sm font-semibold">
@@ -102,21 +107,28 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <div className="font-bold text-white text-lg mb-1.5" style={{ letterSpacing: "-0.02em" }}>
                 Radar Fiscal Municipal 360
               </div>
-              <div className="text-sm mb-3" style={{ color: "#00E5A0" }}>
+              <div className="text-sm mb-4" style={{ color: "#00E5A0" }}>
                 Monitoramento inteligente para decisões seguras
               </div>
+              <a
+                href="https://institutoi10.com.br"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 mb-3 group"
+                aria-label="Instituto i10 — site institucional"
+              >
+                <span className="text-[10px] uppercase font-bold tracking-widest" style={{ color: "rgba(255,255,255,0.55)", letterSpacing: "0.12em" }}>
+                  uma solução
+                </span>
+                <img
+                  src={`${basePath}/brand/i10/i10-inverted.svg`}
+                  alt="Instituto i10"
+                  className="h-10 w-auto opacity-95 group-hover:opacity-100 transition-opacity"
+                />
+              </a>
               <p className="text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.65)" }}>
-                Plataforma de inteligência fiscal e gerencial do{" "}
-                <a
-                  href="https://institutoi10.com.br"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-bold underline hover:text-white"
-                  style={{ color: "rgba(255,255,255,0.9)" }}
-                >
-                  Instituto i10
-                </a>{" "}
-                — transformando dados técnicos em decisões públicas seguras.
+                Plataforma de inteligência fiscal e gerencial do Instituto i10 —
+                transformando dados técnicos em decisões públicas seguras.
               </p>
             </div>
 
