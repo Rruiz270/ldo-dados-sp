@@ -42,6 +42,9 @@ START_TS=$(date +%s)
   /usr/bin/env python3 sync_inep.py
   /usr/bin/env python3 sync_ppa_ldo.py || true
   echo ""
+  echo "--- Regenerar alertas (engine, 645 munis) ---"
+  /usr/bin/env python3 regenerar_alertas.py
+  echo ""
   echo "Run finalizado: $(date)"
 } >> "$LOG_FILE" 2>&1
 
