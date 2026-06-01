@@ -83,7 +83,9 @@ WHERE u.status = 'ready';
 
 -- 5. Painel de progresso da expansão nacional -------------------------
 -- Quantos munis cada UF tem em staging vs. quanto falta. Operacional, não
--- toca SP. Usa indicadores_lrf como proxy de "tem base fiscal".
+-- toca SP. Usa indicadores_fiscais (RREO/RGF do SICONFI, nacional) como proxy
+-- de "tem base fiscal" — indicadores_lrf só é populada via TCE-SP/Audesp, então
+-- como proxy travava toda UF fora de SP em 0%. Espelha o gate de cobertura_uf.
 CREATE OR REPLACE VIEW vw_progresso_nacional AS
 SELECT
   u.uf,
@@ -91,12 +93,12 @@ SELECT
   u.regiao,
   u.status,
   COUNT(DISTINCT m.cod_ibge)                                        AS munis_carregados,
-  COUNT(DISTINCT l.cod_ibge)                                        AS munis_com_fiscal,
+  COUNT(DISTINCT f.cod_ibge)                                        AS munis_com_fiscal,
   u.cobertura_pct,
   u.atualizado_em
 FROM uf_status u
-LEFT JOIN municipios m       ON m.uf = u.uf
-LEFT JOIN indicadores_lrf l  ON l.cod_ibge = m.cod_ibge
+LEFT JOIN municipios m            ON m.uf = u.uf
+LEFT JOIN indicadores_fiscais f   ON f.cod_ibge = m.cod_ibge
 GROUP BY u.uf, u.nome, u.regiao, u.status, u.cobertura_pct, u.atualizado_em
 ORDER BY
   CASE u.status WHEN 'ready' THEN 0 WHEN 'staging' THEN 1 ELSE 2 END,

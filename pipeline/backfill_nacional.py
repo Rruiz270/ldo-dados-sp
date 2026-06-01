@@ -76,15 +76,20 @@ def conectar():
 
 
 def cobertura_uf(conn, uf):
-    """Retorna (munis_carregados, munis_com_fiscal, pct). Usa o /entes do
-    SICONFI como universo esperado só depois que a UF tem municípios; antes
-    disso, pct=0 força o scraping inicial."""
+    """Retorna (munis_carregados, munis_com_fiscal, pct).
+
+    Cobertura = % dos municípios da UF que já têm dados fiscais nacionais
+    (indicadores_fiscais, alimentada por RREO/RGF do SICONFI — disponível pra
+    todo o Brasil). ANTES media indicadores_lrf, que só é populada pela fonte
+    TCE-SP/Audesp (exclusiva de SP) — então qualquer UF fora de SP ficava
+    travada em 0% pra sempre. Para SP o resultado é equivalente (cobertura alta
+    nas duas tabelas); para RS/demais, este é o único sinal nacional possível."""
     with conn.cursor() as cur:
         cur.execute("SELECT count(*) FROM municipios WHERE uf = %s", (uf,))
         carregados = cur.fetchone()[0]
         cur.execute("""
-            SELECT count(DISTINCT l.cod_ibge)
-            FROM municipios m JOIN indicadores_lrf l ON l.cod_ibge = m.cod_ibge
+            SELECT count(DISTINCT f.cod_ibge)
+            FROM municipios m JOIN indicadores_fiscais f ON f.cod_ibge = m.cod_ibge
             WHERE m.uf = %s
         """, (uf,))
         com_fiscal = cur.fetchone()[0]
@@ -179,7 +184,14 @@ def main():
     rodar([sys.executable, "siconfi_scraper.py"], uf)
     rodar([sys.executable, "sync_to_neon.py"], uf)
 
-    # 3. Mede e decide o flip
+    # 3. Mede e decide o flip. Reabre a conexão: o scrape+sync acima pode levar
+    #    horas e a conexão aberta no início do run morre (SSL closed) nesse meio
+    #    tempo — medir com ela crashava o orquestrador antes do flip.
+    try:
+        conn.close()
+    except Exception:
+        pass
+    conn = conectar()
     carr, fisc, pct = cobertura_uf(conn, uf)
     log(f"  depois: {carr} munis, {fisc} c/ fiscal ({pct:.1f}%)")
 
