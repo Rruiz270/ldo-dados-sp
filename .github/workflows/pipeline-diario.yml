@@ -1,0 +1,85 @@
+name: Pipeline diário (Radar Fiscal 360)
+
+# Substitui o crontab do Mac (0 4 * * *) que parou na migração Mac Pro → M5.
+# Roda os scrapers (SICONFI, AUDESP, SIOPE, SIOPS, INEP, PPA/LDO/LOA),
+# sincroniza para o Neon e regenera os alertas dos 645 municípios de SP.
+
+on:
+  schedule:
+    # 07:00 UTC = 04:00 BRT (Brasil não tem horário de verão desde 2019)
+    - cron: "0 7 * * *"
+  workflow_dispatch: {} # permite rodar manualmente (catch-up dos dias parados)
+
+concurrency:
+  group: pipeline-diario
+  cancel-in-progress: false # nunca cortar uma execução em andamento
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350 # abaixo do teto de 360 do GitHub Actions
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependências
+        run: pip install requests psycopg2-binary openpyxl PyMuPDF
+
+      # Persiste os dados brutos entre execuções (replica o disco do Mac):
+      # os scrapers usam *.status.json nessas pastas para rodar incremental.
+      - name: Restaurar cache de dados brutos
+        uses: actions/cache@v4
+        with:
+          path: |
+            pipeline/siconfi_data
+            pipeline/audesp_data
+            pipeline/siope_data
+            pipeline/siops_data
+            pipeline/inep_data
+            pipeline/leis_data
+          key: pipeline-data-${{ github.run_id }}
+          restore-keys: |
+            pipeline-data-
+
+      - name: Validar segredo DATABASE_URL
+        run: |
+          if [ -z "${DATABASE_URL}" ]; then
+            echo "::error::Secret DATABASE_URL não configurado no repositório."
+            exit 1
+          fi
+          echo "DATABASE_URL presente (valor mascarado)."
+
+      # Mesma ordem do pipeline/run_daily.sh, sem a notificação do macOS.
+      # Sem 'set -e': um scraper que falhe não aborta os demais (igual ao Mac).
+      - name: Rodar pipeline
+        working-directory: pipeline
+        run: |
+          set -u
+          echo "=== SICONFI (STN) ==="
+          python siconfi_scraper.py || echo "::warning::siconfi_scraper falhou"
+          echo "=== AUDESP/TCE-SP ==="
+          python audesp_downloader.py || echo "::warning::audesp_downloader falhou"
+          echo "=== SIOPE (FNDE) ==="
+          python siope_scraper.py || echo "::warning::siope_scraper falhou"
+          echo "=== SIOPS (DataSUS) ==="
+          python siops_scraper.py || echo "::warning::siops_scraper falhou"
+          echo "=== INEP (IDEB) ==="
+          python inep_scraper.py || echo "::warning::inep_scraper falhou"
+          echo "=== PPA/LDO/LOA (best-effort) ==="
+          python ppa_ldo_loa_scraper.py || echo "::warning::ppa_ldo_loa_scraper falhou"
+          echo "=== Sync → Neon ==="
+          python sync_to_neon.py || echo "::warning::sync_to_neon falhou"
+          python sync_siope.py   || echo "::warning::sync_siope falhou"
+          python sync_siops.py   || echo "::warning::sync_siops falhou"
+          python sync_inep.py    || echo "::warning::sync_inep falhou"
+          python sync_ppa_ldo.py || echo "::warning::sync_ppa_ldo falhou"
+          echo "=== Regenerar alertas (645 munis) ==="
+          python regenerar_alertas.py || echo "::warning::regenerar_alertas falhou"
+          echo "=== Pipeline finalizado ==="
