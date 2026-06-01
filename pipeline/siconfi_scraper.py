@@ -30,6 +30,15 @@ import requests
 BASE_URL = "https://apidatalake.tesouro.gov.br/ords/siconfi/tt"
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "siconfi_data")
 
+# UFs-alvo da coleta. A API /entes do SICONFI é NACIONAL (devolve os 5.570
+# municípios); historicamente filtrávamos só 'SP'. Agora vem de env pra permitir
+# a expansão nacional UF-a-UF sem tocar no fluxo de SP:
+#   SICONFI_UFS=SP        → comportamento legado (default), grava municipios_sp.json
+#   SICONFI_UFS=MG        → coleta só Minas (estado em staging)
+#   SICONFI_UFS=ALL       → Brasil inteiro
+# Vide migration 0008_nacional_uf_gate.sql.
+TARGET_UFS = [u.strip().upper() for u in os.environ.get("SICONFI_UFS", "SP").split(",") if u.strip()]
+
 RREO_ANEXOS = [
     "RREO-Anexo 01",   # Balanço Orçamentário
     "RREO-Anexo 02",   # Despesas por Função/Subfunção
@@ -210,20 +219,40 @@ def save_csv(items, filename):
 
 
 def get_sp_municipalities():
-    cache = os.path.join(OUTPUT_DIR, "municipios_sp.json")
+    """Lista de municípios-alvo via /entes do SICONFI (API nacional).
+
+    Filtra por TARGET_UFS (env SICONFI_UFS, default 'SP'). Mantém o nome e o
+    cache `municipios_sp.json` quando o alvo é exatamente SP, pra não quebrar o
+    sync_to_neon.py legado. Para outras UFs grava `municipios_<uf>.json`; para
+    multi-UF/ALL grava `municipios_br.json`.
+    """
+    only_sp = TARGET_UFS == ["SP"]
+    is_all = TARGET_UFS == ["ALL"]
+    cache_name = (
+        "municipios_sp.json" if only_sp
+        else "municipios_br.json" if is_all
+        else f"municipios_{'_'.join(u.lower() for u in TARGET_UFS)}.json"
+    )
+    cache = os.path.join(OUTPUT_DIR, cache_name)
     if os.path.exists(cache):
         with open(cache, "r", encoding="utf-8") as f:
             return json.load(f)
-    log("Buscando lista de municípios SP via /entes ...")
+
+    alvo = "Brasil (todas UFs)" if is_all else "/".join(TARGET_UFS)
+    log(f"Buscando lista de municípios [{alvo}] via /entes ...")
     items, _ = api_get_all_pages("entes", {})
-    sp = sorted(
-        [e for e in items if e.get("uf") == "SP" and e.get("esfera") == "M"],
-        key=lambda x: x.get("ente", ""),
+    munis = sorted(
+        [
+            e for e in items
+            if e.get("esfera") == "M"
+            and (is_all or e.get("uf") in TARGET_UFS)
+        ],
+        key=lambda x: (x.get("uf", ""), x.get("ente", "")),
     )
-    save_json(sp, "municipios_sp.json")
-    save_csv(sp, "municipios_sp.csv")
-    log(f"  {len(sp)} municípios SP")
-    return sp
+    save_json(munis, cache_name)
+    save_csv(munis, cache_name.replace(".json", ".csv"))
+    log(f"  {len(munis)} municípios [{alvo}]")
+    return munis
 
 
 def extract_one(municipalities, kind, ano, periodo, extras):
@@ -308,8 +337,18 @@ def main():
         log("ERRO: lista de municípios vazia")
         sys.exit(1)
 
+    # Orçamento de tempo (env TIME_BUDGET_MIN): sai LIMPO entre extrações antes
+    # de estourar o teto de 6h do GitHub Actions. Sair limpo (vs. ser morto no
+    # timeout) é o que garante que o cache de dados brutos salve e o próximo run
+    # retome via status.json. 0/ausente = sem limite (rodar local).
+    budget_min = float(os.environ.get("TIME_BUDGET_MIN", "0") or "0")
+    deadline = start.timestamp() + budget_min * 60 if budget_min > 0 else None
+
     total_novos = 0
     for kind, ano, periodo, extras in EXTRACTIONS:
+        if deadline and datetime.now().timestamp() > deadline:
+            log(f"  ORÇAMENTO DE TEMPO ({budget_min:.0f}min) atingido — saindo limpo p/ próximo run retomar")
+            break
         if not is_extraction_due(kind, ano, periodo):
             log(f"  {fname_prefix(kind, ano, periodo)}: prazo legal ainda não venceu - skip")
             continue

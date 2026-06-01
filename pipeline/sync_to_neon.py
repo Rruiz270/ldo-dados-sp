@@ -60,7 +60,22 @@ def log(msg):
 # --------------------------------------------------------------------
 
 def load_municipios():
-    path = os.path.join(SICONFI_DIR, "municipios_sp.json")
+    """Carrega o cache de municípios do SICONFI.
+
+    Default = municipios_sp.json (legado SP). Durante a expansão nacional, o
+    estado-alvo vem de env SICONFI_UFS (mesma var do siconfi_scraper.py):
+      SICONFI_UFS=SP  → municipios_sp.json
+      SICONFI_UFS=AC  → municipios_ac.json
+      SICONFI_UFS=ALL → municipios_br.json
+    """
+    ufs = [u.strip().upper() for u in os.environ.get("SICONFI_UFS", "SP").split(",") if u.strip()]
+    if ufs == ["SP"]:
+        name = "municipios_sp.json"
+    elif ufs == ["ALL"]:
+        name = "municipios_br.json"
+    else:
+        name = f"municipios_{'_'.join(u.lower() for u in ufs)}.json"
+    path = os.path.join(SICONFI_DIR, name)
     with open(path) as f:
         return json.load(f)
 
@@ -227,21 +242,27 @@ def faixa_pop(pop):
 
 
 def upsert_municipios(conn, municipios):
+    # CRÍTICO: grava `uf` vinda do /entes do SICONFI. Sem isso, municípios de
+    # outros estados cairiam no DEFAULT 'SP' e contaminariam vw_municipios_
+    # publicados (ready) → alertas falsos sobre SP. Vide 0008_nacional_uf_gate.
     rows = [
-        (m["cod_ibge"], m.get("ente"), m.get("populacao"), faixa_pop(m.get("populacao")))
+        (m["cod_ibge"], m.get("ente"), m.get("populacao"),
+         faixa_pop(m.get("populacao")), (m.get("uf") or "SP").upper())
         for m in municipios
     ]
     with conn.cursor() as cur:
         psycopg2.extras.execute_values(cur, """
-            INSERT INTO municipios (cod_ibge, nome, populacao, faixa_pop)
+            INSERT INTO municipios (cod_ibge, nome, populacao, faixa_pop, uf)
             VALUES %s
             ON CONFLICT (cod_ibge) DO UPDATE SET
               nome = EXCLUDED.nome,
               populacao = EXCLUDED.populacao,
               faixa_pop = EXCLUDED.faixa_pop,
+              uf = EXCLUDED.uf,
               updated_at = NOW()
         """, rows, page_size=200)
-    log(f"  municipios: upserted {len(rows)}")
+    ufs = sorted({(m.get("uf") or "SP").upper() for m in municipios})
+    log(f"  municipios: upserted {len(rows)} (UFs: {','.join(ufs)})")
 
 
 def upsert_publicacao_status(conn, status_maps):

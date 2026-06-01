@@ -1,0 +1,86 @@
+name: Backfill nacional (RS → Brasil)
+
+# Puxa a base fiscal (SICONFI, API oficial) dos 5.570 municípios do Brasil,
+# UM ESTADO POR VEZ, começando pelo RS. "Nunca para" porque o estado fica no
+# banco (uf_status), não aqui: cada run em cron pega a próxima UF incompleta,
+# trabalha dentro de um orçamento de tempo (sai limpo antes do teto de 6h) e
+# o cache persiste os dados brutos pro próximo run retomar.
+#
+# São Paulo (já 'ready' em produção) NUNCA é tocado — o orquestrador o pula.
+# Estados em staging são invisíveis pro Radar até atingirem a cobertura mínima.
+
+on:
+  schedule:
+    # A cada 3h. Não colide com o pipeline-diario (07:00 UTC) — concurrency
+    # groups distintos, então rodam independentes.
+    - cron: "30 */3 * * *"
+  workflow_dispatch:
+    inputs:
+      uf:
+        description: "Forçar uma UF específica (ex: RS). Vazio = próxima da fila."
+        required: false
+        default: ""
+
+concurrency:
+  group: backfill-nacional
+  cancel-in-progress: false # nunca cortar um backfill em andamento
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350 # abaixo do teto de 360 do Actions
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      # Orçamento de tempo: scraper sai limpo aos 320min, deixando folga pro
+      # sync + flip + salvar cache antes do timeout-minutes de 350.
+      TIME_BUDGET_MIN: "320"
+      SICONFI_UFS: ${{ github.event.inputs.uf }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependências
+        run: pip install requests psycopg2-binary
+
+      # Cache dos dados brutos do SICONFI nacional (replica o disco):
+      # status.json torna o scraper resumível entre runs.
+      - name: Restaurar cache de dados brutos
+        uses: actions/cache@v4
+        with:
+          path: pipeline/siconfi_data
+          key: backfill-siconfi-${{ github.run_id }}
+          restore-keys: |
+            backfill-siconfi-
+
+      - name: Validar segredo DATABASE_URL
+        run: |
+          if [ -z "${DATABASE_URL}" ]; then
+            echo "::error::Secret DATABASE_URL não configurado."
+            exit 1
+          fi
+          echo "DATABASE_URL presente (mascarado)."
+
+      - name: Rodar backfill (próxima UF da fila)
+        working-directory: pipeline
+        run: |
+          if [ -n "${SICONFI_UFS}" ]; then
+            # Valida que é exatamente uma UF (2 letras maiúsculas) antes de
+            # passar como argumento — barra qualquer injeção via input manual.
+            if ! printf '%s' "${SICONFI_UFS}" | grep -Eq '^[A-Z]{2}$'; then
+              echo "::error::UF inválida: '${SICONFI_UFS}' (esperado 2 letras maiúsculas, ex: RS)"
+              exit 1
+            fi
+            python backfill_nacional.py --uf "${SICONFI_UFS}"
+          else
+            python backfill_nacional.py
+          fi
+
+      - name: Status final do progresso nacional
+        if: always()
+        working-directory: pipeline
+        run: python backfill_nacional.py --status || true

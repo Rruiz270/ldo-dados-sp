@@ -56,7 +56,11 @@ def log(msg):
 def regenerar_todos(conn, limit: Optional[int] = None) -> dict:
     conn.autocommit = True
     cur = conn.cursor()
-    cur.execute("SELECT cod_ibge FROM municipios ORDER BY cod_ibge")
+    # SÓ municípios de UFs publicadas (status='ready' em uf_status). Estados em
+    # staging durante a expansão nacional ficam de fora — não geram alerta com
+    # base incompleta. Hoje devolve os 645 de SP (único ready). Vide migration
+    # 0008_nacional_uf_gate.sql / vw_municipios_publicados.
+    cur.execute("SELECT cod_ibge FROM vw_municipios_publicados ORDER BY cod_ibge")
     cods = [r[0] for r in cur.fetchall()]
     if limit:
         cods = cods[:limit]
