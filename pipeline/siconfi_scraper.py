@@ -70,13 +70,16 @@ RGF_ANEXOS = [
 ]
 ANEXOS_BY_KIND = {"rreo": RREO_ANEXOS, "dca": DCA_ANEXOS, "rgf": RGF_ANEXOS}
 
+# Ordem decrescente (ano corrente primeiro): em ambiente sem cache (ex.: runner
+# do GitHub Actions), garante que o dado fresco entre antes do histórico imutável.
+# O histórico mais antigo é resumido nas execuções seguintes via status.json.
 EXTRACTIONS = []
-for ano in (2023, 2024, 2025, 2026):
+for ano in (2026, 2025, 2024, 2023):
     for bim in range(1, 7):
         EXTRACTIONS.append(("rreo", ano, bim, {}))
-for ano in (2023, 2024, 2025):
+for ano in (2025, 2024, 2023):
     EXTRACTIONS.append(("dca", ano, None, {}))
-for ano in (2023, 2024, 2025, 2026):
+for ano in (2026, 2025, 2024, 2023):
     for q in range(1, 4):
         EXTRACTIONS.append(("rgf", ano, q, {"in_periodicidade": "Q", "co_poder": "E"}))
 

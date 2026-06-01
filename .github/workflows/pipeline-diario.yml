@@ -58,23 +58,34 @@ jobs:
 
       # Mesma ordem do pipeline/run_daily.sh, sem a notificação do macOS.
       # Sem 'set -e': um scraper que falhe não aborta os demais (igual ao Mac).
+      #
+      # Cada scraper tem um ORÇAMENTO DE TEMPO (timeout). Os scrapers são
+      # resumíveis (status.json por município), então se o budget acabar o job
+      # ainda conclui dentro da janela → salva o cache → o próximo run retoma.
+      # Total dos budgets (~300min) fica abaixo do timeout do job (350min),
+      # deixando folga para a fase de sync sempre rodar.
       - name: Rodar pipeline
         working-directory: pipeline
         run: |
           set -u
-          echo "=== SICONFI (STN) ==="
-          python siconfi_scraper.py || echo "::warning::siconfi_scraper falhou"
+          run_budget() { # $1=segundos  $2=nome  resto=comando
+            local secs="$1" nome="$2"; shift 2
+            timeout -k 60 --preserve-status "$secs" "$@" \
+              || echo "::warning::$nome interrompido/falhou (budget ${secs}s ou erro) — resume no próximo run"
+          }
+          echo "=== SICONFI (STN) — ano corrente primeiro ==="
+          run_budget 10800 siconfi   python siconfi_scraper.py     # 180 min
           echo "=== AUDESP/TCE-SP ==="
-          python audesp_downloader.py || echo "::warning::audesp_downloader falhou"
+          run_budget 3600  audesp    python audesp_downloader.py   # 60 min
           echo "=== SIOPE (FNDE) ==="
-          python siope_scraper.py || echo "::warning::siope_scraper falhou"
+          run_budget 1800  siope     python siope_scraper.py       # 30 min
           echo "=== SIOPS (DataSUS) ==="
-          python siops_scraper.py || echo "::warning::siops_scraper falhou"
+          run_budget 1800  siops     python siops_scraper.py       # 30 min
           echo "=== INEP (IDEB) ==="
-          python inep_scraper.py || echo "::warning::inep_scraper falhou"
+          run_budget 1200  inep      python inep_scraper.py        # 20 min
           echo "=== PPA/LDO/LOA (best-effort) ==="
-          python ppa_ldo_loa_scraper.py || echo "::warning::ppa_ldo_loa_scraper falhou"
-          echo "=== Sync → Neon ==="
+          run_budget 900   ppa       python ppa_ldo_loa_scraper.py # 15 min
+          echo "=== Sync → Neon (sempre roda) ==="
           python sync_to_neon.py || echo "::warning::sync_to_neon falhou"
           python sync_siope.py   || echo "::warning::sync_siope falhou"
           python sync_siops.py   || echo "::warning::sync_siops falhou"
