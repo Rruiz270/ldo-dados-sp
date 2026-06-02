@@ -53,7 +53,7 @@ const MENSAGENS = [
 async function loadMunicipios(): Promise<Row[]> {
   try {
     const rows = (await sql`
-      SELECT cod_ibge, nome, populacao FROM municipios ORDER BY nome ASC
+      SELECT cod_ibge, nome, populacao FROM vw_municipios_publicados ORDER BY nome ASC
     `) as Row[];
     return rows;
   } catch (e) {

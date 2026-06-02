@@ -50,7 +50,7 @@ export default async function MunicipioLayout({ children, params }: LayoutProps)
   let populacao: number | null = null;
   try {
     const rows = (await sql`
-      SELECT nome, populacao FROM municipios WHERE cod_ibge = ${parseInt(cod, 10)} LIMIT 1
+      SELECT nome, populacao FROM vw_municipios_publicados WHERE cod_ibge = ${parseInt(cod, 10)} LIMIT 1
     `) as Array<{ nome: string; populacao: number | null }>;
     if (rows[0]) {
       nome = rows[0].nome;

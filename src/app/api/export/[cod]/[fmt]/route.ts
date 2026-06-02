@@ -12,7 +12,7 @@ interface PubRow { dataset: string; status: string; atualizado_em: string }
 
 async function loadAll(codNum: number) {
   const [munis, inds, areas, pubs] = await Promise.all([
-    sql`SELECT cod_ibge, nome, populacao, faixa_pop FROM municipios WHERE cod_ibge = ${codNum} LIMIT 1` as Promise<MunicRow[]>,
+    sql`SELECT cod_ibge, nome, populacao, faixa_pop FROM vw_municipios_publicados WHERE cod_ibge = ${codNum} LIMIT 1` as Promise<MunicRow[]>,
     sql`SELECT indicador, exercicio, valor, limite_legal, pct_do_limite, fonte FROM indicadores_lrf WHERE cod_ibge = ${codNum} ORDER BY exercicio DESC, indicador` as Promise<IndRow[]>,
     sql`SELECT funcao, exercicio, periodo, eh_area_fim, dotacao_inicial, dotacao_atualizada, empenhado, liquidado, pct_do_total FROM despesa_por_funcao WHERE cod_ibge = ${codNum} ORDER BY exercicio DESC, periodo DESC, eh_area_fim DESC, empenhado DESC NULLS LAST` as Promise<AreaRow[]>,
     sql`SELECT dataset, status, atualizado_em FROM publicacao_status WHERE cod_ibge = ${codNum} ORDER BY dataset DESC` as Promise<PubRow[]>,
