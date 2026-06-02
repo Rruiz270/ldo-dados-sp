@@ -9,11 +9,25 @@ export type PerfilId =
   | "camara"
   | "vereador";
 
+// Cada perfil mapeia para uma VISÃO (painel) — não há auth, são só visões.
+//   executiva     → consolidado estratégico (Prefeito)
+//   pasta         → metas físicas por área/órgão (Secretário de pasta)
+//   financas      → execução/caixa/limites (Secretário de Finanças)
+//   conformidade  → faixas amarela/vermelha + alertas (Controle/Câmara/Vereador)
+//   transparencia → visão pública padrão
+export type TipoVisao =
+  | "executiva"
+  | "pasta"
+  | "financas"
+  | "conformidade"
+  | "transparencia";
+
 export interface Perfil {
   id: PerfilId;
   nome: string;
   descricao: string;
   cor: string;
+  tipoVisao: TipoVisao;
   podeVerAlertas: boolean;
   podeCriarProvidencia: boolean;
   podeEditarCadastro: boolean;
@@ -27,6 +41,7 @@ export const PERFIS: Perfil[] = [
     nome: "Público",
     descricao: "Visualização de transparência",
     cor: "#667085",
+    tipoVisao: "transparencia",
     podeVerAlertas: true,
     podeCriarProvidencia: false,
     podeEditarCadastro: false,
@@ -38,6 +53,7 @@ export const PERFIS: Perfil[] = [
     nome: "Prefeito",
     descricao: "Visão estratégica e riscos",
     cor: "#4eb51f",
+    tipoVisao: "executiva",
     podeVerAlertas: true,
     podeCriarProvidencia: true,
     podeEditarCadastro: true,
@@ -46,9 +62,10 @@ export const PERFIS: Perfil[] = [
   },
   {
     id: "secretario",
-    nome: "Secretário de Finanças",
-    descricao: "Execução, caixa, metas e limites",
+    nome: "Secretário de pasta",
+    descricao: "Programas, ações e metas físicas da sua área",
     cor: "#0f4f8f",
+    tipoVisao: "pasta",
     podeVerAlertas: true,
     podeCriarProvidencia: true,
     podeEditarCadastro: true,
@@ -60,6 +77,7 @@ export const PERFIS: Perfil[] = [
     nome: "Controle Interno",
     descricao: "Conformidade legal e evidências",
     cor: "#d97706",
+    tipoVisao: "conformidade",
     podeVerAlertas: true,
     podeCriarProvidencia: true,
     podeEditarCadastro: false,
@@ -71,6 +89,7 @@ export const PERFIS: Perfil[] = [
     nome: "Câmara Municipal",
     descricao: "Acompanhamento legislativo",
     cor: "#0b2f63",
+    tipoVisao: "conformidade",
     podeVerAlertas: true,
     podeCriarProvidencia: false,
     podeEditarCadastro: false,
@@ -82,6 +101,7 @@ export const PERFIS: Perfil[] = [
     nome: "Vereador",
     descricao: "Fiscalização individual",
     cor: "#1d8a43",
+    tipoVisao: "conformidade",
     podeVerAlertas: true,
     podeCriarProvidencia: false,
     podeEditarCadastro: false,

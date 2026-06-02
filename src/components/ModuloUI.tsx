@@ -244,6 +244,48 @@ export function SemaforoMax({
   return <Badge color="var(--verde-2)">Conforme</Badge>;
 }
 
+// Badge do status_acompanhamento de uma meta física (0009).
+// pendente · preenchido · notificado · escalonado
+const STATUS_META: Record<string, { rotulo: string; cor: string }> = {
+  pendente: { rotulo: "Pendente", cor: "#667085" },
+  preenchido: { rotulo: "Preenchido", cor: "var(--verde-2)" },
+  notificado: { rotulo: "Notificado", cor: "#d97706" },
+  escalonado: { rotulo: "Escalonado", cor: "#dc2626" },
+};
+
+export function StatusMetaBadge({ status }: { status: string | null | undefined }) {
+  const s = STATUS_META[status ?? "pendente"] ?? STATUS_META.pendente;
+  return <Badge color={s.cor}>{s.rotulo}</Badge>;
+}
+
+// Deriva, sem enviar nada, se uma meta está com "notificação devida" ou já
+// deveria estar "escalonada" — baseado no bimestre de referência vencido e no
+// status ainda 'pendente'. Cálculo simples por data (calendário de bimestres do
+// RREO: B1 fecha em mar, B2 mai, B3 jul, B4 set, B5 nov, B6 jan do ano seguinte).
+const BIM_FECHAMENTO_MES = [3, 5, 7, 9, 11, 13]; // 13 = jan do ano seguinte
+export function notificacaoDevida(
+  status: string | null | undefined,
+  exercicio: number,
+  bimestre: number | null | undefined,
+  hoje: Date = new Date(),
+): "ok" | "devida" | "escalonar" {
+  if (status !== "pendente") return "ok";
+  if (!bimestre || bimestre < 1 || bimestre > 6) return "ok";
+  const mesFech = BIM_FECHAMENTO_MES[bimestre - 1];
+  // Data limite de preenchimento (1º dia do mês seguinte ao fechamento do bimestre).
+  const limite = new Date(exercicio, mesFech, 1);
+  const diasVencido = Math.floor((hoje.getTime() - limite.getTime()) / 86_400_000);
+  if (diasVencido <= 0) return "ok";
+  if (diasVencido > 60) return "escalonar"; // muito vencido → escalonar
+  return "devida";
+}
+
+export function NotificacaoBadge({ tipo }: { tipo: "ok" | "devida" | "escalonar" }) {
+  if (tipo === "ok") return null;
+  if (tipo === "escalonar") return <Badge color="#dc2626">Escalonado (devido)</Badge>;
+  return <Badge color="#d97706">Notificação devida</Badge>;
+}
+
 function Badge({ color, children }: { color: string; children: React.ReactNode }) {
   return (
     <span
