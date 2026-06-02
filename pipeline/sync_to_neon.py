@@ -136,16 +136,208 @@ def extract_pessoal(rgf_file):
     return out
 
 
-def extract_divida(rgf_file):
-    """RGF Anexo 02 → DCL / RCL (limite 1.2)."""
-    out = {}
+def _to_float(v):
+    """float() tolerante (None/'' → None)."""
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
+def _quad_col(q):
+    """Rótulo da coluna do quadrimestre corrente no RGF (Anexos 02 e 03).
+    O SICONFI usa 'Até o Nº Quadrimestre' (acumulado até o período processado),
+    NÃO 'SALDO DO EXERCÍCIO ANTERIOR'."""
+    return f"Até o {int(q)}º Quadrimestre"
+
+
+def _is_pct_col(coluna):
+    """True se a coluna já expressa um % (sobre a RCL/RCL ajustada), não R$.
+    O RGF traz colunas '% SOBRE A RCL' ou '% SOBRE A RCL AJUSTADA' nos anexos
+    02 e 04 (linhas de percentual prontas)."""
+    return "%" in (coluna or "").upper()
+
+
+def extract_divida(rgf_file, q):
+    """RGF Anexo 02 → % da DCL sobre a RCL ajustada (limite 120%).
+
+    O % vem PRONTO no cod_conta 'PercentualDaDCLSobreARCL' (DCL — com 'L'; NÃO
+    'PercentualDaDCSobreARCL', que é a Dívida Consolidada bruta). O valor é
+    quadrimestral por COLUNA: pegamos 'Até o {q}º Quadrimestre' (período corrente),
+    nunca 'SALDO DO EXERCÍCIO ANTERIOR'.
+
+    Fallback (layout sem o % pronto): computa DCL R$ ÷ RCL R$ × 100 na mesma coluna.
+    Confirmado contra a API: Campinas (3509502) 2025 Q2 → 7,88%.
+    """
+    quad = _quad_col(q)
+    pct_pronto = {}     # cod_ibge → % pronto (DCL sobre RCL ajustada)
+    dcl_rs = {}         # cod_ibge → DCL em R$ (coluna do quadrimestre)
+    rcl_rs = {}         # cod_ibge → RCL em R$ (coluna do quadrimestre)
     for r in iter_json_records(rgf_file):
         if r.get("anexo") != "RGF-Anexo 02":
             continue
+        if (r.get("coluna") or "") != quad:
+            continue
+        cod = r["cod_ibge"]
+        codc = r.get("cod_conta") or ""
+        val = _to_float(r.get("valor"))
+        if val is None:
+            continue
+        if codc == "PercentualDaDCLSobreARCL":
+            pct_pronto[cod] = val
+        elif codc == "DividaConsolidadaLiquida":
+            dcl_rs[cod] = val
+        elif codc in ("RGF2ReceitaCorrenteLiquida",
+                      "ReceitaCorrenteLiquidaAjustadaParaCalculoDosLimitesDeEndividamento"):
+            # Prioriza a RCL ajustada (denominador legal); só usa a bruta se faltar
+            if codc == "ReceitaCorrenteLiquidaAjustadaParaCalculoDosLimitesDeEndividamento" \
+                    or cod not in rcl_rs:
+                rcl_rs[cod] = val
+
+    out = {}
+    for cod in set(pct_pronto) | set(dcl_rs):
+        if cod in pct_pronto:
+            out[cod] = pct_pronto[cod]
+        elif rcl_rs.get(cod):
+            out[cod] = round(dcl_rs[cod] / rcl_rs[cod] * 100.0, 4)
+    return out
+
+
+def extract_garantias(rgf_file, q):
+    """RGF Anexo 03 → Garantias concedidas / RCL (limite 22%).
+
+    O anexo NÃO traz coluna de '% sobre a RCL' — só valores R$ por quadrimestre.
+    Então COMPUTAMOS: total de garantias concedidas (R$) ÷ RCL (R$) × 100, ambos
+    na coluna do quadrimestre corrente ('Até o {q}º Quadrimestre').
+
+    Município raramente concede garantia: quando não há linha-total de garantias
+    (ex.: Campinas), o % é 0. A RCL está em cod_conta 'RGF3ReceitaCorrenteLiquida'.
+    """
+    quad = _quad_col(q)
+    rcl_rs = {}                       # cod_ibge → RCL R$
+    garantias_rs = defaultdict(float)  # cod_ibge → total garantias concedidas R$
+    tem_muni = set()                  # munis presentes no anexo (p/ gravar 0)
+    for r in iter_json_records(rgf_file):
+        if r.get("anexo") != "RGF-Anexo 03":
+            continue
+        if (r.get("coluna") or "") != quad:
+            continue
+        cod = r["cod_ibge"]
+        tem_muni.add(cod)
+        codc = r.get("cod_conta") or ""
         conta = (r.get("conta") or "").upper()
-        coluna = (r.get("coluna") or "").upper()
-        if "DIVIDA CONSOLIDADA LIQUIDA" in conta and "%" in coluna:
-            out[r["cod_ibge"]] = float(r["valor"])
+        val = _to_float(r.get("valor"))
+        if val is None:
+            continue
+        if codc == "RGF3ReceitaCorrenteLiquida":
+            rcl_rs[cod] = val
+            continue
+        # Linha-total de garantias concedidas. O layout do anexo 03 expõe a síntese
+        # como 'TOTAL DAS GARANTIAS CONCEDIDAS' (cod_conta com 'Total'+'Garantia').
+        cu = codc.upper()
+        is_total_garantia = (
+            ("TOTAL" in cu and "GARANTIA" in cu and "CONTRAGARANTIA" not in cu)
+            or "TOTAL DAS GARANTIAS CONCEDIDAS" in conta
+            or "TOTAL GARANTIAS CONCEDIDAS" in conta
+        )
+        if is_total_garantia:
+            garantias_rs[cod] += val
+
+    out = {}
+    for cod in tem_muni:
+        rcl = rcl_rs.get(cod)
+        if not rcl:
+            continue
+        out[cod] = round(garantias_rs.get(cod, 0.0) / rcl * 100.0, 4)
+    return out
+
+
+def extract_operacoes_e_aro(rgf_file, q):
+    """RGF Anexo 04 → Operações de crédito (16%), comprometimento (11,5%) e ARO (7%).
+    Retorna {cod_ibge: {operacoes_credito, comprometimento_credito, aro}}.
+
+    Layout real (validado contra a API): o anexo traz o % PRONTO para o total de
+    operações de crédito em cod_conta
+    'TotalConsideradoParaFinsDaApuracaoDoCumprimentoDoLimiteOperacoesDeCredito'
+    na coluna '% SOBRE A RCL AJUSTADA' (linhas de LIMITE são ignoradas). Quando o %
+    pronto não existir, COMPUTAMOS o montante R$ ÷ RCL ajustada R$ × 100.
+
+    ARO e comprometimento aparecem como linhas próprias só quando há valor; ausentes
+    (ex.: Campinas) ⇒ 0. As linhas 'LIMITE ...' (cod_conta com 'Limite') são tetos,
+    não realizações — descartadas.
+    """
+    out = defaultdict(dict)
+    # buffers p/ fallback computado (valores R$ por município)
+    opcred_rs = {}    # montante total de operações de crédito apurado p/ o limite
+    aro_rs = defaultdict(float)
+    compr_rs = defaultdict(float)
+    rcl_aj_rs = {}    # RCL ajustada R$
+
+    for r in iter_json_records(rgf_file):
+        if r.get("anexo") != "RGF-Anexo 04":
+            continue
+        codc = r.get("cod_conta") or ""
+        cu = codc.upper()
+        conta = (r.get("conta") or "").upper()
+        coluna = r.get("coluna") or ""
+        cod = r["cod_ibge"]
+        val = _to_float(r.get("valor"))
+        if val is None:
+            continue
+
+        # Linhas de LIMITE são tetos legais, não realizações → ignorar.
+        # Filtra só pelo cod_conta (começa com 'Limite'); NÃO pelo texto da conta,
+        # pois a linha-total legítima contém 'APURAÇÃO DO CUMPRIMENTO DO LIMITE'.
+        if cu.startswith("LIMITE"):
+            continue
+
+        is_pct = _is_pct_col(coluna)
+
+        # --- Operações de crédito: total apurado p/ o limite (VIII) ---
+        if codc == "TotalConsideradoParaFinsDaApuracaoDoCumprimentoDoLimiteOperacoesDeCredito":
+            if is_pct:
+                out[cod]["operacoes_credito"] = val
+            else:
+                opcred_rs[cod] = val
+            continue
+
+        # RCL ajustada (denominador p/ fallback computado)
+        if codc == "ReceitaCorrenteLiquidaAjustadaParaCalculoDosLimitesDeEndividamento":
+            rcl_aj_rs[cod] = val
+            continue
+        if codc == "RGF4ReceitaCorrenteLiquida" and cod not in rcl_aj_rs:
+            rcl_aj_rs[cod] = val
+            continue
+
+        # --- ARO (operações por antecipação da receita orçamentária) realizado ---
+        is_aro = ("ANTECIPA" in cu and "RECEITA" in cu) or "ARO" in cu \
+            or ("ANTECIPA" in conta and "RECEITA" in conta)
+        if is_aro:
+            if is_pct:
+                out[cod]["aro"] = val
+            else:
+                aro_rs[cod] += val
+            continue
+
+        # --- Comprometimento anual (amortizações/juros/encargos) ---
+        if "COMPROMETIMENTO" in cu or "COMPROMETIMENTO" in conta:
+            if is_pct:
+                out[cod]["comprometimento_credito"] = val
+            else:
+                compr_rs[cod] += val
+            continue
+
+    # Computa % a partir dos R$ quando não veio % pronto
+    for cod, rcl in rcl_aj_rs.items():
+        if not rcl:
+            continue
+        if "operacoes_credito" not in out[cod] and cod in opcred_rs:
+            out[cod]["operacoes_credito"] = round(opcred_rs[cod] / rcl * 100.0, 4)
+        if "aro" not in out[cod] and cod in aro_rs:
+            out[cod]["aro"] = round(aro_rs[cod] / rcl * 100.0, 4)
+        if "comprometimento_credito" not in out[cod] and cod in compr_rs:
+            out[cod]["comprometimento_credito"] = round(compr_rs[cod] / rcl * 100.0, 4)
+
     return out
 
 
@@ -187,16 +379,17 @@ def load_audesp_analises_rows():
     reader = csv.DictReader(StringIO(text), delimiter=";")
     rows = []
 
-    # Mapeamento (nome_coluna_csv, indicador, limite_legal, semantica)
-    # Semântica: "max" = limite máximo (alto=ruim, ex pessoal 60%)
-    #            "min" = piso obrigatório (alto=bom, ex educação 25%)
+    # Mapeamento (nome_coluna_csv, indicador, limite_legal, prudencial, alerta)
+    # Tetos (alto=ruim) vs pisos (alto=bom) são lidos do catálogo na UI; aqui só
+    # gravamos os limites/faixas que a lei define. Faixas (prudencial/alerta) só
+    # existem onde a LRF prevê: pessoal (57/54). Demais → None.
     MAPS = [
-        ("Despesa com Pessoal Poder Executivo (%)", "pessoal", 60.0, "max"),
-        ("Despesa Empenhada Ensino (%)", "educacao", 25.0, "min"),
-        ("Despesa Empenhada Saúde (%)", "saude", 15.0, "min"),
-        ("Despesa Empenhada FUNDEB (%)", "fundeb", 100.0, "min"),
-        ("Despesa Empenhada FUNDEB Profissionais da Educação (%)", "fundeb_profissionais", 70.0, "min"),
-        ("Resultado da Execução Orçamentária (%)", "resultado_execucao", None, None),
+        ("Despesa com Pessoal Poder Executivo (%)", "pessoal", 60.0, 57.0, 54.0),
+        ("Despesa Empenhada Ensino (%)", "educacao", 25.0, None, None),
+        ("Despesa Empenhada Saúde (%)", "saude", 15.0, None, None),
+        ("Despesa Empenhada FUNDEB (%)", "fundeb", 100.0, None, None),
+        ("Despesa Empenhada FUNDEB Profissionais da Educação (%)", "fundeb_profissionais", 70.0, None, None),
+        ("Resultado da Execução Orçamentária (%)", "resultado_execucao", None, None, None),
     ]
 
     for r in reader:
@@ -208,7 +401,7 @@ def load_audesp_analises_rows():
         if not ano or not cod:
             continue
 
-        for csv_col, indicador, limite, _semantica in MAPS:
+        for csv_col, indicador, limite, prud, alerta in MAPS:
             raw = r.get(csv_col)
             valor_decimal = _br_decimal(raw)
             if valor_decimal is None:
@@ -220,7 +413,8 @@ def load_audesp_analises_rows():
                 pct_lim = round((valor_pct / limite) * 100.0, 2)
             rows.append((
                 cod, ano, 0, "A", indicador,
-                round(valor_pct, 4), None, limite, pct_lim, "Audesp"
+                round(valor_pct, 4), None, limite, pct_lim, "Audesp",
+                prud, alerta,
             ))
 
     return rows
@@ -285,14 +479,16 @@ def upsert_publicacao_status(conn, status_maps):
 
 def upsert_indicadores_lrf(conn, rows):
     """rows: [(cod_ibge, exercicio, periodo, periodicidade, indicador,
-              valor, base_calculo, limite_legal, pct_do_limite, fonte), ...]"""
+              valor, base_calculo, limite_legal, pct_do_limite, fonte,
+              limite_prudencial, limite_alerta), ...]"""
     if not rows:
         return
     with conn.cursor() as cur:
         psycopg2.extras.execute_values(cur, """
             INSERT INTO indicadores_lrf (
               cod_ibge, exercicio, periodo, periodicidade, indicador,
-              valor, base_calculo, limite_legal, pct_do_limite, fonte
+              valor, base_calculo, limite_legal, pct_do_limite, fonte,
+              limite_prudencial, limite_alerta
             )
             VALUES %s
             ON CONFLICT (cod_ibge, exercicio, periodo, periodicidade, indicador) DO UPDATE SET
@@ -301,6 +497,8 @@ def upsert_indicadores_lrf(conn, rows):
               limite_legal = EXCLUDED.limite_legal,
               pct_do_limite = EXCLUDED.pct_do_limite,
               fonte = EXCLUDED.fonte,
+              limite_prudencial = EXCLUDED.limite_prudencial,
+              limite_alerta = EXCLUDED.limite_alerta,
               atualizado_em = NOW()
         """, rows, page_size=500)
     log(f"  indicadores_lrf: upserted {len(rows)}")
@@ -310,12 +508,80 @@ def upsert_indicadores_lrf(conn, rows):
 # Pipeline principal
 # --------------------------------------------------------------------
 
+# Tetos fiscais lidos do RGF (LRF / Res. SF 40 e 43). Faixas (prudencial/alerta)
+# só existem onde a lei prevê: divida tem alerta=108 (prudencial não); os demais
+# tetos não têm faixas intermediárias → None. Espelha lrf_indicador_meta (0009).
+RGF_LRF_META = {
+    # indicador               : (limite_legal, prudencial, alerta)
+    "divida":                  (120.0, None, 108.0),
+    "operacoes_credito":       (16.0,  None, None),
+    "comprometimento_credito": (11.5,  None, None),
+    "aro":                     (7.0,   None, None),
+    "garantias":               (22.0,  None, None),
+}
+
+
+def _rgf_files():
+    """Itera (ano, quadrimestre, filename) dos RGF disponíveis, do mais recente
+    pro mais antigo. Mantém histórico (não dá break por ano: RGF é quadrimestral
+    e queremos todas as leituras disponíveis, como já fazem RREO/Audesp)."""
+    for ano in (2026, 2025, 2024):
+        for q in (3, 2, 1):
+            fname = f"rgf_{ano}_q{q}.json"
+            if os.path.exists(os.path.join(SICONFI_DIR, fname)):
+                yield ano, q, fname
+
+
+def _lrf_row(cod, ano, periodo, indicador, valor_pct):
+    """Monta a tupla de 12 campos pra indicadores_lrf a partir de um % sobre RCL."""
+    limite, prud, alerta = RGF_LRF_META[indicador]
+    pct_lim = None
+    if limite and limite > 0:
+        pct_lim = round((valor_pct / limite) * 100.0, 2)
+    return (
+        cod, ano, periodo, "Q", indicador,
+        round(valor_pct, 4), None, limite, pct_lim, "RGF",
+        prud, alerta,
+    )
+
+
+def build_lrf_rgf_rows():
+    """Tetos fiscais do RGF (SICONFI): dívida (Anexo 02), operações de crédito +
+    comprometimento + ARO (Anexo 04) e garantias (Anexo 03). Todos como % sobre a
+    RCL. SP-only: o sync só carrega arquivos rgf_*.json gerados pra SP; o gate
+    nacional (vw_municipios_publicados) garante a publicação só de SP de qualquer
+    forma. NÃO altera o backfill nacional."""
+    rows = []
+    for ano, q, fname in _rgf_files():
+        divida = extract_divida(fname, q)
+        for cod, v in divida.items():
+            rows.append(_lrf_row(cod, ano, q, "divida", v))
+
+        garantias = extract_garantias(fname, q)
+        for cod, v in garantias.items():
+            rows.append(_lrf_row(cod, ano, q, "garantias", v))
+
+        oac = extract_operacoes_e_aro(fname, q)
+        for cod, fields in oac.items():
+            for indicador in ("operacoes_credito", "comprometimento_credito", "aro"):
+                if indicador in fields:
+                    rows.append(_lrf_row(cod, ano, q, indicador, fields[indicador]))
+
+        log(f"  RGF {ano}/Q{q}: divida={len(divida)} garantias={len(garantias)} "
+            f"op_credito/aro={len(oac)}")
+    return rows
+
+
 def build_lrf_rows():
-    """Constrói indicadores_lrf — V1 usa Audesp Análises (TCE-SP processado).
-    Em V2 vamos cruzar com RGF/RREO raw pra drill-down e dados mais frescos."""
+    """Constrói indicadores_lrf — Audesp Análises (TCE-SP) p/ pessoal/educação/
+    saúde/FUNDEB/resultado + RGF (SICONFI) p/ os tetos de dívida, operações de
+    crédito, comprometimento, ARO e garantias. Tudo SP-only."""
     rows = load_audesp_analises_rows()
     log(f"  Audesp Análises: {len(rows)} pontos de indicador "
         f"(~{len(rows)//6} munis × ano × 6 indicadores)")
+    rgf_rows = build_lrf_rgf_rows()
+    log(f"  RGF (tetos fiscais): {len(rgf_rows)} pontos de indicador")
+    rows.extend(rgf_rows)
     return rows
 
 

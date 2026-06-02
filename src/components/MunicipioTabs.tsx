@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { lrfColor } from "@/lib/theme";
+import { lrfColor, pisoColor } from "@/lib/theme";
 import { UserCog, Crown, ShieldCheck, AlertTriangle, Coins, BarChart3, Check, X, TrendingUp, Download, type LucideIcon } from "lucide-react";
 
 interface Municipio {
@@ -19,6 +19,13 @@ interface IndicadorLRF {
   limite_legal: number;
   pct_do_limite: number;
   fonte: string;
+  // v2: vindos de vw_lrf_indicadores (podem faltar em chamadas legadas).
+  rotulo?: string;
+  tipo?: "fiscal_lrf" | "constitucional";
+  natureza?: "teto" | "piso";
+  limite_efetivo?: number | null;
+  limite_prudencial?: number | null;
+  limite_alerta?: number | null;
 }
 
 interface DespesaFuncao {
@@ -410,13 +417,13 @@ function PrefeitoView({
   const vitorias = latest.filter((i) => {
     if (!i.pct_do_limite) return false;
     const pct = Number(i.pct_do_limite);
-    if (MAX_SEMANTIC.has(i.indicador)) return pct < 80;   // pessoal/dívida confortáveis
+    if (isTeto(i)) return pct < 80;   // pessoal/dívida confortáveis
     return pct >= 100;  // educ/saúde/fundeb acima do mínimo
   });
   const alertas = latest.filter((i) => {
     if (!i.pct_do_limite) return false;
     const pct = Number(i.pct_do_limite);
-    if (MAX_SEMANTIC.has(i.indicador)) return pct >= 90;
+    if (isTeto(i)) return pct >= 90;
     return pct < 90;
   });
 
@@ -463,7 +470,7 @@ function PrefeitoView({
                   {Number(v.valor).toFixed(1)}%
                 </div>
                 <div className="text-xs text-green-700 mt-1">
-                  {MAX_SEMANTIC.has(v.indicador)
+                  {isTeto(v)
                     ? `bem abaixo do teto (${Number(v.limite_legal).toFixed(0)}%)`
                     : `acima do mínimo (${Number(v.limite_legal).toFixed(0)}%)`}
                 </div>
@@ -489,7 +496,7 @@ function PrefeitoView({
                   {Number(a.valor).toFixed(1)}%
                 </div>
                 <div className="text-xs text-amber-700 mt-1">
-                  {MAX_SEMANTIC.has(a.indicador)
+                  {isTeto(a)
                     ? `próximo ao teto de ${Number(a.limite_legal).toFixed(0)}%`
                     : `abaixo do mínimo de ${Number(a.limite_legal).toFixed(0)}%`}
                 </div>
@@ -584,12 +591,12 @@ function VereadorView({
   const problemas = latest.filter((i) => {
     if (!i.pct_do_limite) return false;
     const pct = Number(i.pct_do_limite);
-    if (MAX_SEMANTIC.has(i.indicador)) return pct >= 90;     // perto/acima do teto
+    if (isTeto(i)) return pct >= 90;     // perto/acima do teto
     return pct < 100;  // abaixo do mínimo
   });
   const fora_da_lei = problemas.filter((i) => {
     const pct = Number(i.pct_do_limite);
-    if (MAX_SEMANTIC.has(i.indicador)) return pct >= 100;
+    if (isTeto(i)) return pct >= 100;
     return pct < 100;
   });
 
@@ -630,7 +637,7 @@ function VereadorView({
             {fora_da_lei.map((i) => (
               <li key={i.indicador}>
                 <strong>{LABELS[i.indicador] ?? i.indicador}:</strong> {Number(i.valor).toFixed(1)}%
-                {" "}({MAX_SEMANTIC.has(i.indicador) ? "limite máx" : "mínimo legal"}:{" "}
+                {" "}({isTeto(i) ? "limite máx" : "mínimo legal"}:{" "}
                 {Number(i.limite_legal).toFixed(0)}%)
               </li>
             ))}
@@ -770,37 +777,68 @@ function fmtBRL(v: number | null) {
 
 const LABELS: Record<string, string> = {
   pessoal: "Despesa com Pessoal",
+  divida: "Dívida Consolidada (DCL)",
+  operacoes_credito: "Operações de Crédito",
+  comprometimento_credito: "Comprometimento c/ Crédito",
+  aro: "Antecipação de Receita (ARO)",
+  garantias: "Garantias",
+  resultado_execucao: "Resultado Execução",
   educacao: "Educação",
   saude: "Saúde",
   fundeb: "FUNDEB",
   fundeb_profissionais: "FUNDEB Profissionais",
-  resultado_execucao: "Resultado Execução",
 };
 
-// Indicadores onde alto = ruim (limite máximo)
-const MAX_SEMANTIC = new Set(["pessoal", "divida"]);
+// Indicadores de TETO (alto = ruim). Fallback quando `natureza` não vem na linha.
+// A view vw_lrf_indicadores expõe `natureza` diretamente — preferir isso.
+const MAX_SEMANTIC = new Set([
+  "pessoal",
+  "divida",
+  "operacoes_credito",
+  "comprometimento_credito",
+  "aro",
+  "garantias",
+]);
+
+// Verdadeiro se o indicador é um teto (alto = ruim). Usa `natureza` quando
+// disponível (fonte de verdade), senão cai no conjunto MAX_SEMANTIC.
+function isTeto(i: { indicador: string; natureza?: "teto" | "piso" }): boolean {
+  if (i.natureza) return i.natureza === "teto";
+  return MAX_SEMANTIC.has(i.indicador);
+}
 
 function LrfCard({ indicador }: { indicador: IndicadorLRF }) {
   const valor = Number(indicador.valor ?? 0);
-  const limite = indicador.limite_legal != null ? Number(indicador.limite_legal) : null;
+  const limite = indicador.limite_legal != null
+    ? Number(indicador.limite_legal)
+    : indicador.limite_efetivo != null ? Number(indicador.limite_efetivo) : null;
   const pctLim = indicador.pct_do_limite != null ? Number(indicador.pct_do_limite) : null;
 
-  const isMaxLimit = MAX_SEMANTIC.has(indicador.indicador);
-  // Para indicadores "min", >=100% do mínimo é bom (verde); para "max", <80% é bom
+  const teto = isTeto(indicador);
+  const prud = indicador.limite_prudencial != null ? Number(indicador.limite_prudencial) : null;
+  const alerta = indicador.limite_alerta != null ? Number(indicador.limite_alerta) : null;
+
+  // Cor: tetos pelo % do limite (lrfColor, 4 faixas); pisos NÃO invertem
+  // (≥100% do mínimo = verde). pisoColor é leitura correta acima/abaixo do piso.
   const color = pctLim == null
     ? "#94A3B8"
-    : isMaxLimit
+    : teto
       ? lrfColor(pctLim)
-      : pctLim >= 100 ? "#00E5A0" : pctLim >= 80 ? "#00B4D8" : "#f59e0b";
+      : pisoColor(pctLim);
 
   const periodoLabel = indicador.periodicidade === "A"
     ? `${indicador.exercicio}`
     : `${indicador.exercicio}/${indicador.periodicidade}${indicador.periodo}`;
 
+  // Faixas legais só quando existem (pessoal: prud+alerta; dívida: só alerta).
+  const faixas: string[] = [];
+  if (teto && prud != null) faixas.push(`prudencial ${prud.toFixed(1)}%`);
+  if (teto && alerta != null) faixas.push(`alerta ${alerta.toFixed(1)}%`);
+
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
       <div className="text-xs uppercase tracking-wide text-slate-500 mb-1 font-medium">
-        {LABELS[indicador.indicador] ?? indicador.indicador}
+        {indicador.rotulo ?? LABELS[indicador.indicador] ?? indicador.indicador}
       </div>
       <div className="text-3xl font-bold" style={{ color: "#0A2463" }}>
         {valor.toFixed(1)}%
@@ -808,10 +846,10 @@ function LrfCard({ indicador }: { indicador: IndicadorLRF }) {
       <div className="text-xs text-slate-500 mb-3">
         {limite != null ? (
           <>
-            {isMaxLimit ? "limite máximo" : "mínimo legal"}: <strong>{limite.toFixed(1)}%</strong>
+            {teto ? "limite (teto)" : "mínimo (piso)"}: <strong>{limite.toFixed(1)}%</strong>
           </>
         ) : (
-          <>sem limite legal</>
+          <>informativo (sem limite legal)</>
         )}
       </div>
       {pctLim != null && (
@@ -821,6 +859,9 @@ function LrfCard({ indicador }: { indicador: IndicadorLRF }) {
             style={{ width: `${Math.min(100, pctLim)}%`, background: color }}
           />
         </div>
+      )}
+      {faixas.length > 0 && (
+        <div className="mt-2 text-[10px] text-slate-400">{faixas.join(" · ")}</div>
       )}
       <div className="mt-2 text-[10px] text-slate-400 uppercase tracking-wide">
         {indicador.fonte} · {periodoLabel}

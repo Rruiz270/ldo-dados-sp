@@ -194,7 +194,8 @@ export function fmtDate(d: Date | string | null | undefined): string {
   return String(d).slice(0, 10);
 }
 
-// Semáforo para indicadores com mínimo legal (educação 25%, saúde 15%, fundeb 70% etc.)
+// Semáforo para PISOS constitucionais (educação 25%, saúde 15%, fundeb 100%,
+// fundeb_profissionais 70%). NÃO inverte: alto = bom. Rótulos acima/abaixo do piso.
 export function SemaforoMin({
   valor,
   limite,
@@ -205,27 +206,41 @@ export function SemaforoMin({
   if (valor === null || limite === null) return <span style={{ color: "var(--cinza)" }}>—</span>;
   const v = Number(valor),
     L = Number(limite);
-  if (!Number.isFinite(v) || !Number.isFinite(L)) return <span style={{ color: "var(--cinza)" }}>—</span>;
-  if (v < L) return <Badge color="#dc2626">Abaixo do mínimo</Badge>;
-  if (v < L * 1.05) return <Badge color="#d97706">No limite</Badge>;
-  return <Badge color="var(--verde-2)">Conforme</Badge>;
+  if (!Number.isFinite(v) || !Number.isFinite(L) || L <= 0) return <span style={{ color: "var(--cinza)" }}>—</span>;
+  if (v >= L) return <Badge color="var(--verde-2)">Acima do mínimo</Badge>;
+  if (v >= L * 0.95) return <Badge color="#d97706">No limite do piso</Badge>;
+  return <Badge color="#dc2626">Abaixo do mínimo</Badge>;
 }
 
-// Semáforo para indicadores com máximo legal (pessoal 60%, dívida 120% etc.)
+// Semáforo para TETOS (pessoal 60%, dívida 120%, op. crédito 16%, ARO 7% etc.).
+// As faixas prudencial/alerta SÓ existem onde a lei prevê — devem vir explícitas.
+// Quando ausentes (NULL), o indicador não tem essas faixas: classifica só por
+// proximidade do teto (Atenção a partir de 90% do limite). Nunca inventa
+// "Prudencial"/"Alerta" para quem não tem (corrige o 0.95/0.9 para todos).
 export function SemaforoMax({
   valor,
   limite,
+  limitePrudencial,
+  limiteAlerta,
 }: {
   valor: string | number | null;
   limite: string | number | null;
+  limitePrudencial?: string | number | null;
+  limiteAlerta?: string | number | null;
 }) {
   if (valor === null || limite === null) return <span style={{ color: "var(--cinza)" }}>—</span>;
   const v = Number(valor),
     L = Number(limite);
-  if (!Number.isFinite(v) || !Number.isFinite(L)) return <span style={{ color: "var(--cinza)" }}>—</span>;
-  if (v > L) return <Badge color="#dc2626">Acima do limite</Badge>;
-  if (v > L * 0.95) return <Badge color="#d97706">Prudencial</Badge>;
-  if (v > L * 0.9) return <Badge color="var(--azul-2)">Atenção</Badge>;
+  if (!Number.isFinite(v) || !Number.isFinite(L) || L <= 0) return <span style={{ color: "var(--cinza)" }}>—</span>;
+
+  const prud = limitePrudencial != null && limitePrudencial !== "" ? Number(limitePrudencial) : null;
+  const al = limiteAlerta != null && limiteAlerta !== "" ? Number(limiteAlerta) : null;
+
+  if (v >= L) return <Badge color="#dc2626">Acima do limite</Badge>;
+  if (prud != null && Number.isFinite(prud) && v >= prud) return <Badge color="#dc2626">Prudencial</Badge>;
+  if (al != null && Number.isFinite(al) && v >= al) return <Badge color="#d97706">Alerta</Badge>;
+  // Sem faixa legal intermediária: só proximidade do teto.
+  if (v >= L * 0.9) return <Badge color="var(--azul-2)">Atenção</Badge>;
   return <Badge color="var(--verde-2)">Conforme</Badge>;
 }
 
