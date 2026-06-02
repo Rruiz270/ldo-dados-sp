@@ -36,12 +36,65 @@ export const brandLegacy = {
   green: brand.verde,
 };
 
-// Semáforo LRF — situação fiscal por % do limite consumido
+// Semáforo LRF para TETOS — cor por % do limite consumido (alto = ruim).
+// 4 faixas: Verde <80 · Azul 80-90 · Amarelo 90-95 · Vermelho ≥95 do limite.
 export function lrfColor(pctOfLimit: number): string {
   if (pctOfLimit >= 95) return "#dc2626"; // vermelho — estouro iminente
   if (pctOfLimit >= 90) return "#f59e0b"; // amarelo — alerta
   if (pctOfLimit >= 80) return brand.azul2; // azul — atenção
   return brand.verde; // verde — folga
+}
+
+// Semáforo para PISOS constitucionais (educação 25%, saúde 15%, fundeb 100%,
+// fundeb_profissionais 70%). NÃO inverte: alto = bom. pctDoPiso = valor/piso*100.
+//   ≥100 → cumpre (verde) · 95-100 → no limite (amarelo) · <95 → abaixo (vermelho)
+export function pisoColor(pctOfPiso: number): string {
+  if (pctOfPiso >= 100) return brand.verde2; // cumpre o mínimo
+  if (pctOfPiso >= 95) return "#f59e0b";      // quase no piso
+  return "#dc2626";                            // abaixo do mínimo
+}
+
+// Faixa textual/semântica de um indicador LRF respeitando a existência (ou não)
+// das faixas prudencial/alerta. Para TETOS usa o valor absoluto vs. os limites
+// legais; para PISOS lê acima/abaixo do mínimo. Devolve { faixa, label, cor }.
+export type FaixaLRF = "conforme" | "atencao" | "alerta" | "prudencial" | "efetivo" | "abaixo" | "no_limite" | "sem_dado";
+
+export interface LrfMetaLike {
+  natureza: "teto" | "piso";
+  limiteEfetivo: number | null;
+  limitePrudencial: number | null;
+  limiteAlerta: number | null;
+}
+
+export function faixaLRF(
+  meta: LrfMetaLike,
+  valor: number | null,
+): { faixa: FaixaLRF; label: string; cor: string } {
+  if (valor == null || !Number.isFinite(valor)) {
+    return { faixa: "sem_dado", label: "—", cor: brand.cinza };
+  }
+
+  if (meta.natureza === "piso") {
+    const piso = meta.limiteEfetivo;
+    if (piso == null || piso <= 0) return { faixa: "sem_dado", label: "—", cor: brand.cinza };
+    const pct = (valor / piso) * 100;
+    if (valor >= piso) return { faixa: "efetivo", label: "Acima do mínimo", cor: pisoColor(pct) };
+    if (pct >= 95) return { faixa: "no_limite", label: "No limite do piso", cor: pisoColor(pct) };
+    return { faixa: "abaixo", label: "Abaixo do mínimo", cor: pisoColor(pct) };
+  }
+
+  // TETO — ordem: efetivo > prudencial > alerta. Faixas só onde definidas.
+  const { limiteEfetivo: ef, limitePrudencial: prud, limiteAlerta: al } = meta;
+  if (ef != null && valor >= ef) return { faixa: "efetivo", label: "Acima do limite", cor: "#dc2626" };
+  if (prud != null && valor >= prud) return { faixa: "prudencial", label: "Limite prudencial", cor: "#dc2626" };
+  if (al != null && valor >= al) return { faixa: "alerta", label: "Alerta", cor: "#f59e0b" };
+  // Sem estouro/faixa intermediária: classifica pela proximidade do teto.
+  if (ef != null && ef > 0) {
+    const pct = (valor / ef) * 100;
+    if (pct >= 80) return { faixa: "atencao", label: "Atenção", cor: lrfColor(pct) };
+    return { faixa: "conforme", label: "Conforme", cor: brand.verde2 };
+  }
+  return { faixa: "conforme", label: "Conforme", cor: brand.verde2 };
 }
 
 // Cor por nível de risco/criticidade

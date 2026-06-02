@@ -28,6 +28,12 @@ interface IndicadorLRF {
   limite_legal: number;
   pct_do_limite: number;
   fonte: string;
+  rotulo?: string;
+  tipo?: "fiscal_lrf" | "constitucional";
+  natureza?: "teto" | "piso";
+  limite_efetivo?: number | null;
+  limite_prudencial?: number | null;
+  limite_alerta?: number | null;
 }
 
 interface DespesaFuncao {
@@ -80,15 +86,20 @@ export default async function MunicipioPage({ params }: PageProps) {
   let fiscais: IndicadorFiscal[] = [];
 
   try {
+    // Gate nacional (0008): vw_municipios_publicados expõe só UFs ready (SP hoje).
+    // Evita vazamento de municípios em staging (RS/AC) na busca e no ranking.
     const rows = (await sql`
       SELECT cod_ibge, nome, populacao, faixa_pop, regiao
-      FROM municipios WHERE cod_ibge = ${codNum} LIMIT 1
+      FROM vw_municipios_publicados WHERE cod_ibge = ${codNum} LIMIT 1
     `) as Municipio[];
     municipio = rows[0] ?? null;
     if (municipio) {
+      // v2: lê da view canônica (indicadores_lrf + catálogo), já SP-only.
       indicadores = (await sql`
-        SELECT indicador, exercicio, periodo, periodicidade, valor, limite_legal, pct_do_limite, fonte
-        FROM indicadores_lrf
+        SELECT indicador, exercicio, periodo, periodicidade, valor,
+               limite_legal, pct_do_limite, fonte, rotulo, tipo, natureza,
+               limite_efetivo, limite_prudencial, limite_alerta
+        FROM vw_lrf_indicadores
         WHERE cod_ibge = ${codNum}
         ORDER BY exercicio DESC, periodo DESC
       `) as IndicadorLRF[];
@@ -129,11 +140,14 @@ export default async function MunicipioPage({ params }: PageProps) {
         ORDER BY dataset DESC
       `) as PublicacaoStatus[];
 
-      // Ranking estadual por indicador — posição do município no exercício mais recente
+      // Ranking estadual por indicador — posição do município no exercício mais
+      // recente. Usa vw_lrf_indicadores (gate SP via vw_municipios_publicados):
+      // só compara municípios paulistas publicados, sem vazamento de RS/AC.
+      // Tetos (natureza='teto') ordenam ASC (menor=melhor); pisos DESC (maior=melhor).
       ranking = (await sql`
         WITH latest AS (
           SELECT indicador, MAX(exercicio) AS exercicio
-          FROM indicadores_lrf
+          FROM vw_lrf_indicadores
           WHERE valor IS NOT NULL
           GROUP BY indicador
         ),
@@ -141,11 +155,11 @@ export default async function MunicipioPage({ params }: PageProps) {
           SELECT i.indicador, i.cod_ibge, i.valor, i.exercicio,
                  RANK() OVER (
                    PARTITION BY i.indicador
-                   ORDER BY CASE WHEN i.indicador IN ('pessoal','divida')
+                   ORDER BY CASE WHEN i.natureza = 'teto'
                                  THEN i.valor ELSE -i.valor END ASC
                  ) AS posicao,
                  COUNT(*) OVER (PARTITION BY i.indicador) AS total
-          FROM indicadores_lrf i
+          FROM vw_lrf_indicadores i
           JOIN latest l USING (indicador, exercicio)
           WHERE i.valor IS NOT NULL
         )

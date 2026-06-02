@@ -27,16 +27,41 @@ export interface Municipio {
   regiao: string | null;
 }
 
+// Indicadores LRF (tetos fiscais) e constitucionais (pisos). v2 acrescenta os
+// tetos de dívida/operações de crédito/comprometimento/ARO/garantias (via RGF)
+// e as faixas prudencial/alerta (só onde a lei define).
+export type LrfIndicadorId =
+  | "pessoal"
+  | "divida"
+  | "operacoes_credito"
+  | "comprometimento_credito"
+  | "aro"
+  | "garantias"
+  | "resultado_execucao"
+  | "educacao"
+  | "saude"
+  | "fundeb"
+  | "fundeb_profissionais";
+
 export interface IndicadorLRF {
   cod_ibge: number;
   exercicio: number;
   periodo: number;
   periodicidade: "A" | "B" | "Q";
-  indicador: "pessoal" | "educacao" | "saude" | "fundeb" | "fundeb_profissionais" | "resultado_execucao";
+  indicador: LrfIndicadorId;
+  // tipo/natureza vêm da view vw_lrf_indicadores (catálogo lrf_indicador_meta).
+  tipo?: "fiscal_lrf" | "constitucional";
+  natureza?: "teto" | "piso";
+  rotulo?: string;
   valor: number;
   base_calculo: number | null;
   limite_legal: number | null;
   pct_do_limite: number | null;
+  // Faixas — só populadas onde a LRF prevê (pessoal: prudencial+alerta;
+  // dívida: só alerta). NULL nos demais → UI exibe "—".
+  limite_prudencial: number | null;
+  limite_alerta: number | null;
+  base_legal?: string | null;
   fonte: "RREO" | "RGF" | "DCA" | "Audesp";
   atualizado_em: string;
 }
