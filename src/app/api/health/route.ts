@@ -15,7 +15,7 @@ export async function GET() {
 
   try {
     const start = Date.now();
-    const rows = (await sql`SELECT COUNT(*)::int AS n FROM municipios`) as Array<{ n: number }>;
+    const rows = (await sql`SELECT COUNT(*)::int AS n FROM vw_municipios_publicados`) as Array<{ n: number }>;
     return NextResponse.json({
       ok: true,
       municipios: rows[0]?.n ?? 0,
