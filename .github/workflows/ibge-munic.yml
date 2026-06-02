@@ -1,0 +1,65 @@
+name: IBGE MUNIC (indicadores institucionais SP)
+
+# Ingere os indicadores institucionais da MUNIC/IBGE (planos, conselhos, fundos,
+# carreira do magistério) dos 645 municípios de SP, gravando em
+# indicadores_externos (fonte 'IBGE-MUNIC'). A MUNIC é anual e muda devagar,
+# então rodamos raramente: 1x/ano em janeiro + dispatch manual sob demanda.
+#
+# SP-only e aditivo: NÃO toca uf_status nem o gate nacional. Idempotente
+# (UPSERT), então re-run é seguro. Não colide com pipeline-diario nem
+# backfill-nacional (concurrency group próprio).
+
+on:
+  schedule:
+    # 1x/ano: 04:00 UTC de 15 de janeiro (edição MUNIC já publicada).
+    - cron: "0 4 15 1 *"
+  workflow_dispatch:
+    inputs:
+      ano:
+        description: "Forçar ano de referência (vazio = ano default por variável)."
+        required: false
+        default: ""
+
+concurrency:
+  group: ibge-munic
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      MUNIC_ANO: ${{ github.event.inputs.ano }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependências
+        run: pip install psycopg2-binary
+
+      - name: Validar segredo DATABASE_URL
+        run: |
+          if [ -z "${DATABASE_URL}" ]; then
+            echo "::error::Secret DATABASE_URL não configurado."
+            exit 1
+          fi
+          echo "DATABASE_URL presente (mascarado)."
+
+      - name: Ingerir MUNIC
+        working-directory: pipeline
+        run: |
+          if [ -n "${MUNIC_ANO}" ]; then
+            if ! printf '%s' "${MUNIC_ANO}" | grep -Eq '^[0-9]{4}$'; then
+              echo "::error::Ano inválido: '${MUNIC_ANO}' (esperado 4 dígitos, ex: 2021)"
+              exit 1
+            fi
+            python ibge_munic.py --ano "${MUNIC_ANO}"
+          else
+            python ibge_munic.py
+          fi
