@@ -2,6 +2,9 @@ import { sql } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { MunicipioTabs } from "@/components/MunicipioTabs";
 import { PainelPreventivo } from "@/components/PainelPreventivo";
+import { PainelExecutivo } from "@/components/PainelExecutivo";
+import { PainelMetasPasta } from "@/components/PainelMetasPasta";
+import { PainelConformidade } from "@/components/PainelConformidade";
 import { getPerfilAtivo } from "@/lib/perfil";
 
 export const dynamic = "force-dynamic";
@@ -9,6 +12,7 @@ export const revalidate = 0;
 
 interface PageProps {
   params: Promise<{ cod: string }>;
+  searchParams: Promise<{ area?: string }>;
 }
 
 interface Municipio {
@@ -71,12 +75,14 @@ interface RankingPos {
   exercicio: number;
 }
 
-export default async function MunicipioPage({ params }: PageProps) {
+export default async function MunicipioPage({ params, searchParams }: PageProps) {
   const { cod } = await params;
+  const { area } = await searchParams;
   const codNum = parseInt(cod, 10);
   if (Number.isNaN(codNum)) notFound();
 
   const perfil = await getPerfilAtivo();
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
   let municipio: Municipio | null = null;
   let indicadores: IndicadorLRF[] = [];
@@ -277,14 +283,24 @@ export default async function MunicipioPage({ params }: PageProps) {
         </div>
       )}
 
-      {/* Painel preventivo dinâmico — Módulo 3 */}
-      <PainelPreventivo
-        codIbge={codNum}
-        basePath={process.env.NEXT_PUBLIC_BASE_PATH || ""}
-        podeCriarProvidencia={perfil.podeCriarProvidencia}
-      />
+      {/* Painel por PAPEL (tipoVisao) — Workstream B. Sem auth: os papéis são
+          visões. Executiva/pasta/conformidade trocam o painel principal; os
+          demais (transparencia/financas) mantêm o comportamento atual. */}
+      {perfil.tipoVisao === "executiva" ? (
+        <PainelExecutivo codIbge={codNum} />
+      ) : perfil.tipoVisao === "pasta" ? (
+        <PainelMetasPasta codIbge={codNum} basePath={basePath} area={area} />
+      ) : perfil.tipoVisao === "conformidade" ? (
+        <PainelConformidade codIbge={codNum} />
+      ) : (
+        <PainelPreventivo
+          codIbge={codNum}
+          basePath={basePath}
+          podeCriarProvidencia={perfil.podeCriarProvidencia}
+        />
+      )}
 
-      {/* Visão técnica detalhada (mantida) */}
+      {/* Visão técnica detalhada (mantida para todos os perfis) */}
       <MunicipioTabs
         municipio={municipio}
         indicadores={indicadores}

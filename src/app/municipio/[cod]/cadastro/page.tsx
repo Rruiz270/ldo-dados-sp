@@ -1,7 +1,7 @@
 import { sql } from "@/lib/db";
 import { Section, Eyebrow, Placeholder } from "@/components/ModuloUI";
 import { getPerfilAtivo } from "@/lib/perfil";
-import { Building2, BookOpen, Target, Coins, ListTree, Users, ArrowRight, Check } from "lucide-react";
+import { Building2, BookOpen, Target, Coins, ListTree, Users, ArrowRight, Check, Activity } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -123,6 +123,14 @@ export default async function CadastroOverview({ params }: PageProps) {
           titulo="Metas fiscais LDO"
           descricao="Resultado primário/nominal, receita/despesa total, dívida."
           quantidade={snap.metas_fiscais}
+          podeEditar={podeEditar}
+        />
+        <CadastroCard
+          href={`${basePath}/municipio/${codNum}/cadastro/metas-fisicas`}
+          Icon={Activity}
+          titulo="Metas físicas"
+          descricao="Metas e realizado por ação, com % de execução e acompanhamento (pendente/preenchido/notificado/escalonado)."
+          quantidade={snap.metas_fisicas}
           podeEditar={podeEditar}
         />
         <CadastroCard

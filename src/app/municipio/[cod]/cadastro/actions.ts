@@ -208,6 +208,131 @@ export async function removerMetaFiscal(codIbge: number, exercicio: number, indi
 }
 
 // ============================================================
+// AÇÕES + METAS FÍSICAS — Module 1 / acompanhamento (0009)
+// ============================================================
+
+// Garante que a ação pertence a um programa do município (gate SP-only por
+// vínculo: o programa é do cod_ibge). Retorna o id da ação (cria se faltar).
+async function acaoDoMunicipio(acaoId: number, codIbge: number) {
+  const rows = (await sql`
+    SELECT a.id FROM acoes a
+    JOIN programas p ON p.id = a.programa_id
+    WHERE a.id = ${acaoId} AND p.cod_ibge = ${codIbge}
+  `) as Array<{ id: number }>;
+  if (rows.length === 0) throw new Error("Ação não encontrada neste município");
+}
+
+export async function criarAcao(data: {
+  codIbge: number;
+  programaId: number;
+  codigo: string;
+  nome: string;
+  produto?: string;
+  unidadeMedida?: string;
+}): Promise<number> {
+  await exigirEdicao();
+  assertCod(data.codIbge);
+
+  const codigo = data.codigo?.trim();
+  const nome = data.nome?.trim();
+  if (!codigo || !nome) throw new Error("Código e nome da ação obrigatórios");
+
+  // Confere que o programa é do município (gate por vínculo).
+  const prog = (await sql`
+    SELECT id FROM programas WHERE id = ${data.programaId} AND cod_ibge = ${data.codIbge}
+  `) as Array<{ id: number }>;
+  if (prog.length === 0) throw new Error("Programa não encontrado neste município");
+
+  const rows = (await sql`
+    INSERT INTO acoes (programa_id, codigo, nome, produto, unidade_medida)
+    VALUES (
+      ${data.programaId},
+      ${codigo},
+      ${nome},
+      ${data.produto?.trim() || null},
+      ${data.unidadeMedida?.trim() || null}
+    )
+    ON CONFLICT (programa_id, codigo) DO UPDATE SET
+      nome = EXCLUDED.nome,
+      produto = EXCLUDED.produto,
+      unidade_medida = EXCLUDED.unidade_medida
+    RETURNING id
+  `) as Array<{ id: number }>;
+  invalidate(data.codIbge);
+  return rows[0].id;
+}
+
+const STATUS_META = ["pendente", "preenchido", "notificado", "escalonado"] as const;
+type StatusMeta = typeof STATUS_META[number];
+
+export async function upsertMetaFisica(data: {
+  codIbge: number;
+  acaoId: number;
+  exercicio: number;
+  metaQuantidade?: number;
+  realizadoQuantidade?: number;
+  bimestreReferencia?: number;
+  responsavelArea?: string;
+  observacoes?: string;
+}) {
+  await exigirEdicao();
+  assertCod(data.codIbge);
+  await acaoDoMunicipio(data.acaoId, data.codIbge);
+  if (!Number.isFinite(data.exercicio) || data.exercicio < 2000 || data.exercicio > 2099) {
+    throw new Error("Exercício inválido");
+  }
+
+  // Preencher meta/realizado marca como 'preenchido' (transição visual).
+  await sql`
+    INSERT INTO metas_fisicas
+      (acao_id, exercicio, meta_quantidade, realizado_quantidade,
+       bimestre_referencia, responsavel_area, observacoes,
+       status_acompanhamento, atualizado_em)
+    VALUES (
+      ${data.acaoId},
+      ${data.exercicio},
+      ${data.metaQuantidade ?? null},
+      ${data.realizadoQuantidade ?? null},
+      ${data.bimestreReferencia ?? null},
+      ${data.responsavelArea?.trim() || null},
+      ${data.observacoes?.trim() || null},
+      'preenchido',
+      NOW()
+    )
+    ON CONFLICT (acao_id, exercicio) DO UPDATE SET
+      meta_quantidade = EXCLUDED.meta_quantidade,
+      realizado_quantidade = EXCLUDED.realizado_quantidade,
+      bimestre_referencia = EXCLUDED.bimestre_referencia,
+      responsavel_area = EXCLUDED.responsavel_area,
+      observacoes = EXCLUDED.observacoes,
+      status_acompanhamento = 'preenchido',
+      atualizado_em = NOW()
+  `;
+  invalidate(data.codIbge);
+}
+
+// marcarStatusMeta: só altera o campo status_acompanhamento. notificado/
+// escalonado NÃO disparam e-mail/WhatsApp/push — é mudança de estado visual.
+export async function marcarStatusMeta(data: {
+  codIbge: number;
+  acaoId: number;
+  exercicio: number;
+  status: string;
+}) {
+  await exigirEdicao();
+  assertCod(data.codIbge);
+  await acaoDoMunicipio(data.acaoId, data.codIbge);
+  if (!STATUS_META.includes(data.status as StatusMeta)) throw new Error("Status inválido");
+
+  await sql`
+    UPDATE metas_fisicas
+    SET status_acompanhamento = ${data.status}, atualizado_em = NOW()
+    WHERE acao_id = ${data.acaoId} AND exercicio = ${data.exercicio}
+  `;
+  invalidate(data.codIbge);
+}
+
+// ============================================================
 // FONTES DE RECURSOS — Module 1
 // ============================================================
 
