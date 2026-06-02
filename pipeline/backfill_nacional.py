@@ -103,7 +103,9 @@ def proxima_uf(conn):
         cur.execute("SELECT uf, status FROM uf_status")
         status = dict(cur.fetchall())
     for uf in FILA_PRIORIDADE:
-        if status.get(uf) != "ready":
+        # 'pausado' = hold manual: não reprocessa nem republica (ex.: RS retido
+        # enquanto o produto fica SP-only).
+        if status.get(uf) not in ("ready", "pausado"):
             return uf
     return None  # Brasil inteiro publicado 🎉
 
@@ -124,7 +126,7 @@ def marcar_ready(conn, uf, pct):
         cur.execute("""
             UPDATE uf_status
                SET status = 'ready', cobertura_pct = %s, atualizado_em = NOW()
-             WHERE uf = %s
+             WHERE uf = %s AND status <> 'pausado'
         """, (round(pct, 2), uf))
     conn.commit()
 
@@ -196,13 +198,21 @@ def main():
     log(f"  depois: {carr} munis, {fisc} c/ fiscal ({pct:.1f}%)")
 
     if pct >= COBERTURA_MINIMA_PCT:
-        marcar_ready(conn, uf, pct)
+        atualizar_progresso(conn, uf, pct)
         log("=" * 64)
-        log(f"✅ AVISO: {uf} COMPLETO ({pct:.1f}% ≥ {COBERTURA_MINIMA_PCT}%) — "
-            f"PUBLICADO no Radar. {carr} municípios agora visíveis.")
+        # Auto-publicação DESLIGADA por padrão: o produto fica SP-only até a
+        # publicação manual de cada UF. Ative com RADAR_AUTO_PUBLISH=1.
+        if os.environ.get("RADAR_AUTO_PUBLISH") == "1":
+            marcar_ready(conn, uf, pct)
+            log(f"✅ {uf} COMPLETO ({pct:.1f}% ≥ {COBERTURA_MINIMA_PCT}%) — "
+                f"PUBLICADO (RADAR_AUTO_PUBLISH=1). {carr} municípios visíveis.")
+        else:
+            log(f"🟡 {uf} PRONTA ({pct:.1f}% ≥ {COBERTURA_MINIMA_PCT}%) — NÃO publicada "
+                f"automaticamente (produto segue SP-only). Para publicar: "
+                f"UPDATE uf_status SET status='ready' WHERE uf='{uf}'.")
         log("=" * 64)
         prox = proxima_uf(conn)
-        log(f"Próxima UF da fila: {prox or '— fim, Brasil completo'}")
+        log(f"Próxima UF da fila: {prox or '— fim'}")
     else:
         atualizar_progresso(conn, uf, pct)
         log(f"⏳ {uf} ainda em staging ({pct:.1f}% < {COBERTURA_MINIMA_PCT}%) — "
