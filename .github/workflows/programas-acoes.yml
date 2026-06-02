@@ -1,0 +1,52 @@
+name: Programas e Ações (TCE-SP despesas)
+
+# Ingestão OCASIONAL de programas/ações orçamentárias dos 645 municípios de SP
+# a partir do dataset público "Despesas" do TCE-SP (~2 GB/ano, atualização semanal).
+#
+# NÃO faz parte do pipeline diário: o download é pesado e a base muda devagar.
+# Roda manualmente (workflow_dispatch) ou 1x/mês (dia 5 às 06:00 UTC = 03:00 BRT).
+
+on:
+  workflow_dispatch:
+    inputs:
+      ano:
+        description: "Ano de exercício (vazio = ano corrente)"
+        required: false
+        default: ""
+  schedule:
+    # dia 5 de cada mês, 06:00 UTC = 03:00 BRT
+    - cron: "0 6 5 * *"
+
+concurrency:
+  group: programas-acoes
+  cancel-in-progress: false # nunca cortar uma ingestão em andamento
+
+jobs:
+  ingestao:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350 # download de ~2 GB + parse streaming; teto do GitHub é 360
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependências
+        run: pip install requests psycopg2-binary
+
+      - name: Definir ano
+        id: ano
+        run: |
+          ANO="${{ github.event.inputs.ano }}"
+          if [ -z "$ANO" ]; then ANO="$(date -u +%Y)"; fi
+          echo "ano=$ANO" >> "$GITHUB_OUTPUT"
+          echo "Ano de ingestão: $ANO"
+
+      - name: Ingerir programas/ações (streaming)
+        run: |
+          python pipeline/tce_despesas_programas.py --ano ${{ steps.ano.outputs.ano }}
