@@ -73,12 +73,12 @@ export default async function EducacaoPage({ params }: PageProps) {
         ) : (
           <Table cols={["Exercício", "Aplicado (%)", "Limite legal", "Status", "Fonte"]}>
             {mdeLrf.map((r, i) => (
-              <tr key={i} className="border-t border-slate-100">
+              <tr key={i} className="border-t border-[#ffffff14]">
                 <Td>{r.exercicio}</Td>
                 <Td>{fmtPct(r.valor)}</Td>
                 <Td>{r.limite_legal ?? "—"}%</Td>
                 <Td><SemaforoMin valor={r.valor} limite={r.limite_legal} /></Td>
-                <Td className="text-slate-500">{r.fonte}</Td>
+                <Td className="text-[#8493b3]">{r.fonte}</Td>
               </tr>
             ))}
           </Table>
@@ -92,12 +92,12 @@ export default async function EducacaoPage({ params }: PageProps) {
         ) : (
           <Table cols={["Exercício", "Indicador", "Valor", "Limite legal", "Fonte"]}>
             {siope.map((r, i) => (
-              <tr key={i} className="border-t border-slate-100">
+              <tr key={i} className="border-t border-[#ffffff14]">
                 <Td>{r.exercicio}</Td>
                 <Td className="font-medium">{labelSiope(r.indicador)}</Td>
                 <Td>{fmtValor(r.valor, r.indicador)}</Td>
                 <Td>{r.limite_legal ? `${r.limite_legal}%` : "—"}</Td>
-                <Td className="text-slate-500 text-xs">{r.fonte_id} {r.fonte_detalhe}</Td>
+                <Td className="text-[#8493b3] text-xs">{r.fonte_id} {r.fonte_detalhe}</Td>
               </tr>
             ))}
           </Table>
@@ -111,17 +111,17 @@ export default async function EducacaoPage({ params }: PageProps) {
         ) : (
           <Table cols={["Rede", "Etapa", "Ciclo", "IDEB observado", "Projeção", "Atingiu meta?"]}>
             {ideb.map((r, i) => (
-              <tr key={i} className="border-t border-slate-100">
+              <tr key={i} className="border-t border-[#ffffff14]">
                 <Td className="capitalize">{r.rede}</Td>
                 <Td className="capitalize">{r.etapa.replace(/_/g, " ")}</Td>
                 <Td>{r.ciclo_avaliacao}</Td>
                 <Td className="font-medium">{r.ideb_observado ?? "—"}</Td>
-                <Td className="text-slate-500">{r.ideb_projetado ?? "—"}</Td>
+                <Td className="text-[#8493b3]">{r.ideb_projetado ?? "—"}</Td>
                 <Td>
                   {r.meta_atingida === null
-                    ? <span className="text-slate-400">—</span>
+                    ? <span className="text-[#5d6b8c]">—</span>
                     : r.meta_atingida
-                    ? <span className="inline-flex items-center gap-1 text-green-700 font-medium">Sim</span>
+                    ? <span className="inline-flex items-center gap-1 text-[#5fe6b6] font-medium">Sim</span>
                     : <span className="inline-flex items-center gap-1 text-red-700 font-medium">Não</span>}
                 </Td>
               </tr>
@@ -136,9 +136,9 @@ export default async function EducacaoPage({ params }: PageProps) {
 function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
     <section>
-      <h2 className="text-lg md:text-xl font-semibold mb-1" style={{ color: "#0A2463" }}>{title}</h2>
-      {subtitle && <p className="text-xs text-slate-600 mb-3">{subtitle}</p>}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <h2 className="text-lg md:text-xl font-semibold mb-1" style={{ color: "#e8eefc" }}>{title}</h2>
+      {subtitle && <p className="text-xs text-[#9aa8c7] mb-3">{subtitle}</p>}
+      <div className="bg-[#ffffff0b] rounded-xl border border-[#ffffff1a] overflow-hidden">
         {children}
       </div>
     </section>
@@ -149,7 +149,7 @@ function Table({ cols, children }: { cols: string[]; children: React.ReactNode }
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
-        <thead className="bg-slate-50 text-slate-600">
+        <thead className="bg-[#ffffff0a] text-[#9aa8c7]">
           <tr>{cols.map(c => <th key={c} className="text-left px-3 py-2 font-medium uppercase tracking-wide text-xs">{c}</th>)}</tr>
         </thead>
         <tbody>{children}</tbody>
@@ -159,11 +159,11 @@ function Table({ cols, children }: { cols: string[]; children: React.ReactNode }
 }
 
 function Td({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <td className={`px-3 py-2 text-slate-800 ${className}`}>{children}</td>;
+  return <td className={`px-3 py-2 text-[#dbe3f5] ${className}`}>{children}</td>;
 }
 
 function Empty({ msg }: { msg: string }) {
-  return <div className="px-3 py-6 text-sm text-slate-500 italic">{msg}</div>;
+  return <div className="px-3 py-6 text-sm text-[#8493b3] italic">{msg}</div>;
 }
 
 function fmtPct(v: string | null): string {
@@ -198,10 +198,10 @@ function labelSiope(ind: string): string {
 }
 
 function SemaforoMin({ valor, limite }: { valor: string; limite: string | null }) {
-  if (!limite) return <span className="text-slate-400">—</span>;
+  if (!limite) return <span className="text-[#5d6b8c]">—</span>;
   const v = Number(valor), L = Number(limite);
-  if (!Number.isFinite(v) || !Number.isFinite(L)) return <span className="text-slate-400">—</span>;
+  if (!Number.isFinite(v) || !Number.isFinite(L)) return <span className="text-[#5d6b8c]">—</span>;
   if (v < L) return <span className="text-red-700 font-medium">Abaixo do mínimo</span>;
-  if (v < L * 1.05) return <span className="text-amber-700 font-medium">No limite</span>;
-  return <span className="text-green-700 font-medium">Conforme</span>;
+  if (v < L * 1.05) return <span className="text-[#e0c36a] font-medium">No limite</span>;
+  return <span className="text-[#5fe6b6] font-medium">Conforme</span>;
 }

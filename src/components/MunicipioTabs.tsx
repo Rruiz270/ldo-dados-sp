@@ -86,13 +86,13 @@ export function MunicipioTabs({
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <div className="flex gap-2 bg-slate-100 p-1 rounded-xl">
+        <div className="flex gap-2 bg-[#ffffff12] p-1 rounded-xl">
           {TABS.map(({ id, label, Icon }) => (
             <button
               key={id}
               onClick={() => setTab(id)}
               className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition ${
-                tab === id ? "bg-white shadow text-slate-900" : "text-slate-600 hover:text-slate-900"
+                tab === id ? "bg-[#ffffff0b] shadow text-[#e8eefc]" : "text-[#9aa8c7] hover:text-[#e8eefc]"
               }`}
             >
               <Icon size={16} strokeWidth={2} aria-hidden />
@@ -106,7 +106,7 @@ export function MunicipioTabs({
         </div>
       </div>
 
-      <div className="text-sm text-slate-500 mb-6 italic">
+      <div className="text-sm text-[#8493b3] mb-6 italic">
         {TABS.find((t) => t.id === tab)?.subtitle}
       </div>
 
@@ -143,7 +143,7 @@ function SecretarioView({ indicadores, areasFim, fiscais }: { indicadores: Indic
       {/* Indicadores fiscais R$ */}
       {(rcl || rp) && (
         <section>
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 mb-3">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-[#8493b3] mb-3">
             Indicadores fiscais (R$)
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -165,7 +165,7 @@ function SecretarioView({ indicadores, areasFim, fiscais }: { indicadores: Indic
 
       {/* Indicadores LRF */}
       <section>
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 mb-3">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-[#8493b3] mb-3">
           Indicadores LRF (cumprimento de limites legais)
         </h3>
         {latest.length === 0 ? (
@@ -184,15 +184,15 @@ function SecretarioView({ indicadores, areasFim, fiscais }: { indicadores: Indic
 
       {/* Áreas-fim */}
       <section>
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 mb-1">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-[#8493b3] mb-1">
           Despesas por área-fim
           {refYear && (
-            <span className="ml-2 text-xs normal-case text-slate-400">
+            <span className="ml-2 text-xs normal-case text-[#5d6b8c]">
               · RREO {refYear}/B{refPer}
             </span>
           )}
         </h3>
-        <p className="text-xs text-slate-500 mb-4 italic">
+        <p className="text-xs text-[#8493b3] mb-4 italic">
           Para cada secretaria/área que presta serviço direto à população: meta (dotação inicial da LOA), executado e % de execução.
         </p>
         {areasFimPrinc.length === 0 ? (
@@ -206,7 +206,7 @@ function SecretarioView({ indicadores, areasFim, fiscais }: { indicadores: Indic
       {areasMeioPrinc.length > 0 && (
         <section>
           <details>
-            <summary className="cursor-pointer text-sm font-semibold uppercase tracking-wide text-slate-500 hover:text-slate-700">
+            <summary className="cursor-pointer text-sm font-semibold uppercase tracking-wide text-[#8493b3] hover:text-[#9aa8c7]">
               Áreas-meio (legislativa, administração, encargos) — {areasMeioPrinc.length} funções
             </summary>
             <div className="mt-4">
@@ -226,7 +226,7 @@ function SecretarioView({ indicadores, areasFim, fiscais }: { indicadores: Indic
 // Casos extremos (atualizada negativa por anulação, ou ausente) viram badge "dados anômalos" sem
 // número — melhor honestidade que exibir 44.633%.
 function computeExec(dotIni: number | null, dotAtu: number | null, liq: number | null): { exec: number | null; cor: string; viaSuplementar: boolean; anomalo: boolean } {
-  if (!liq) return { exec: null, cor: "#94A3B8", viaSuplementar: false, anomalo: false };
+  if (!liq) return { exec: null, cor: "#5d6b8c", viaSuplementar: false, anomalo: false };
   const ini = dotIni ? Number(dotIni) : 0;
   const atu = dotAtu ? Number(dotAtu) : 0;
   const l = Number(liq);
@@ -234,20 +234,20 @@ function computeExec(dotIni: number | null, dotAtu: number | null, liq: number |
 
   // Caso normal — execução plausível sobre dotação inicial
   if (execIni == null || execIni <= 500) {
-    const cor = execIni == null ? "#94A3B8"
-      : execIni >= 95 ? "#00C48A" : execIni >= 80 ? "#00B4D8" : execIni >= 60 ? "#f59e0b" : "#dc2626";
+    const cor = execIni == null ? "#5d6b8c"
+      : execIni >= 95 ? "#34d399" : execIni >= 80 ? "#22d3ee" : execIni >= 60 ? "#fbbf24" : "#f87171";
     return { exec: execIni, cor, viaSuplementar: false, anomalo: false };
   }
 
   // Outlier — tentar dotação atualizada se for válida (positiva e bem maior que inicial)
   if (atu > 0 && atu > ini * 5) {
     const execAtu = (l / atu) * 100;
-    const cor = execAtu >= 95 ? "#00C48A" : execAtu >= 80 ? "#00B4D8" : execAtu >= 60 ? "#f59e0b" : "#dc2626";
+    const cor = execAtu >= 95 ? "#34d399" : execAtu >= 80 ? "#22d3ee" : execAtu >= 60 ? "#fbbf24" : "#f87171";
     return { exec: execAtu, cor, viaSuplementar: true, anomalo: false };
   }
 
   // Outlier sem atualizada confiável (negativa, zero, ou ainda pequena) — anomalia
-  return { exec: null, cor: "#94A3B8", viaSuplementar: false, anomalo: true };
+  return { exec: null, cor: "#5d6b8c", viaSuplementar: false, anomalo: true };
 }
 
 function AreasFimTable({ areas, subfByPai }: { areas: DespesaFuncao[]; subfByPai?: Map<string, DespesaFuncao[]> }) {
@@ -262,9 +262,9 @@ function AreasFimTable({ areas, subfByPai }: { areas: DespesaFuncao[]; subfByPai
   };
 
   return (
-    <div className="overflow-hidden border border-slate-200 rounded-xl bg-white">
+    <div className="overflow-hidden border border-[#ffffff1a] rounded-xl bg-[#ffffff0b]">
       <table className="w-full text-sm">
-        <thead className="bg-slate-50 text-slate-600">
+        <thead className="bg-[#ffffff0a] text-[#9aa8c7]">
           <tr>
             <th className="text-left px-4 py-3 font-semibold w-8"></th>
             <th className="text-left px-4 py-3 font-semibold">Área-fim</th>
@@ -300,55 +300,55 @@ function FuncRow({ a, subs, open, onToggle }: { a: DespesaFuncao; subs: DespesaF
   const canExpand = subs.length > 0;
   return (
     <>
-      <tr className={`border-t border-slate-100 hover:bg-slate-50 ${canExpand ? "cursor-pointer" : ""}`} onClick={canExpand ? onToggle : undefined}>
-        <td className="px-2 py-3 text-center text-slate-400">
+      <tr className={`border-t border-[#ffffff14] hover:bg-[#ffffff0a] ${canExpand ? "cursor-pointer" : ""}`} onClick={canExpand ? onToggle : undefined}>
+        <td className="px-2 py-3 text-center text-[#5d6b8c]">
           {canExpand ? (
             <span className="inline-block w-4 h-4 leading-4 text-xs">{open ? "▼" : "▶"}</span>
           ) : (
             ""
           )}
         </td>
-        <td className="px-4 py-3 font-medium text-slate-900">
+        <td className="px-4 py-3 font-medium text-[#e8eefc]">
           {a.funcao}
-          {canExpand && <span className="ml-2 text-xs text-slate-400 font-normal">({subs.length} subáreas)</span>}
+          {canExpand && <span className="ml-2 text-xs text-[#5d6b8c] font-normal">({subs.length} subáreas)</span>}
           {viaSuplementar && (
-            <span title="Programa ampliado via crédito suplementar (LRF Art. 43): dotação inicial era simbólica, prefeitura abriu a verba durante o exercício com autorização da Câmara. % execução exibido é sobre a dotação atualizada." className="ml-2 inline-flex items-center gap-1 text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-normal align-middle cursor-help">
+            <span title="Programa ampliado via crédito suplementar (LRF Art. 43): dotação inicial era simbólica, prefeitura abriu a verba durante o exercício com autorização da Câmara. % execução exibido é sobre a dotação atualizada." className="ml-2 inline-flex items-center gap-1 text-[10px] bg-[#fbbf2433] text-[#fcd34d] px-1.5 py-0.5 rounded font-normal align-middle cursor-help">
               <TrendingUp size={11} strokeWidth={2.2} aria-hidden /> ampliado p/ crédito suplementar
             </span>
           )}
           {anomalo && (
-            <span title="Dados anômalos: dotação inicial simbólica e dotação atualizada negativa ou inconsistente. % execução não calculável de forma confiável — consulte os valores absolutos." className="ml-2 inline-flex items-center gap-1 text-[10px] bg-red-100 text-red-800 px-1.5 py-0.5 rounded font-normal align-middle cursor-help">
+            <span title="Dados anômalos: dotação inicial simbólica e dotação atualizada negativa ou inconsistente. % execução não calculável de forma confiável — consulte os valores absolutos." className="ml-2 inline-flex items-center gap-1 text-[10px] bg-[#f8717133] text-[#fda4a4] px-1.5 py-0.5 rounded font-normal align-middle cursor-help">
               <AlertTriangle size={11} strokeWidth={2.2} aria-hidden /> dados anômalos
             </span>
           )}
         </td>
-        <td className="px-4 py-3 text-right text-slate-700">{fmtBRL(a.dotacao_inicial)}</td>
-        <td className="px-4 py-3 text-right text-slate-700">{fmtBRL(a.empenhado)}</td>
-        <td className="px-4 py-3 text-right text-slate-700">{fmtBRL(a.liquidado)}</td>
+        <td className="px-4 py-3 text-right text-[#9aa8c7]">{fmtBRL(a.dotacao_inicial)}</td>
+        <td className="px-4 py-3 text-right text-[#9aa8c7]">{fmtBRL(a.empenhado)}</td>
+        <td className="px-4 py-3 text-right text-[#9aa8c7]">{fmtBRL(a.liquidado)}</td>
         <td className="px-4 py-3 text-right">
-          {exec == null ? <span className="text-slate-400">—</span> : <span className="font-semibold" style={{ color: cor }}>{exec.toFixed(1)}%</span>}
+          {exec == null ? <span className="text-[#5d6b8c]">—</span> : <span className="font-semibold" style={{ color: cor }}>{exec.toFixed(1)}%</span>}
         </td>
-        <td className="px-4 py-3 text-right text-slate-500">
+        <td className="px-4 py-3 text-right text-[#8493b3]">
           {a.pct_do_total != null ? `${Number(a.pct_do_total).toFixed(1)}%` : "—"}
         </td>
       </tr>
       {open && subs.map((s) => {
         const { exec: sExec, cor: sCor, viaSuplementar: sVia, anomalo: sAno } = computeExec(s.dotacao_inicial, s.dotacao_atualizada, s.liquidado);
         return (
-          <tr key={`${a.funcao}-${s.funcao}`} className="bg-slate-50/50 border-t border-slate-100 text-xs">
+          <tr key={`${a.funcao}-${s.funcao}`} className="bg-[#ffffff08] border-t border-[#ffffff14] text-xs">
             <td></td>
-            <td className="px-4 py-2 text-slate-700 pl-12">
+            <td className="px-4 py-2 text-[#9aa8c7] pl-12">
               ↳ {s.funcao}
-              {sVia && <span title="Ampliado via crédito suplementar — % sobre dotação atualizada" className="ml-2 inline-flex items-center text-[9px] bg-amber-100 text-amber-800 px-1 py-0.5 rounded"><TrendingUp size={10} strokeWidth={2.2} aria-hidden /></span>}
-              {sAno && <span title="Dados anômalos" className="ml-2 inline-flex items-center text-[9px] bg-red-100 text-red-800 px-1 py-0.5 rounded"><AlertTriangle size={10} strokeWidth={2.2} aria-hidden /></span>}
+              {sVia && <span title="Ampliado via crédito suplementar — % sobre dotação atualizada" className="ml-2 inline-flex items-center text-[9px] bg-[#fbbf2433] text-[#fcd34d] px-1 py-0.5 rounded"><TrendingUp size={10} strokeWidth={2.2} aria-hidden /></span>}
+              {sAno && <span title="Dados anômalos" className="ml-2 inline-flex items-center text-[9px] bg-[#f8717133] text-[#fda4a4] px-1 py-0.5 rounded"><AlertTriangle size={10} strokeWidth={2.2} aria-hidden /></span>}
             </td>
-            <td className="px-4 py-2 text-right text-slate-600">{fmtBRL(s.dotacao_inicial)}</td>
-            <td className="px-4 py-2 text-right text-slate-600">{fmtBRL(s.empenhado)}</td>
-            <td className="px-4 py-2 text-right text-slate-600">{fmtBRL(s.liquidado)}</td>
+            <td className="px-4 py-2 text-right text-[#9aa8c7]">{fmtBRL(s.dotacao_inicial)}</td>
+            <td className="px-4 py-2 text-right text-[#9aa8c7]">{fmtBRL(s.empenhado)}</td>
+            <td className="px-4 py-2 text-right text-[#9aa8c7]">{fmtBRL(s.liquidado)}</td>
             <td className="px-4 py-2 text-right">
-              {sExec == null ? <span className="text-slate-400">—</span> : <span style={{ color: sCor }}>{sExec.toFixed(1)}%</span>}
+              {sExec == null ? <span className="text-[#5d6b8c]">—</span> : <span style={{ color: sCor }}>{sExec.toFixed(1)}%</span>}
             </td>
-            <td className="px-4 py-2 text-right text-slate-400">
+            <td className="px-4 py-2 text-right text-[#5d6b8c]">
               {s.pct_do_total != null ? `${Number(s.pct_do_total).toFixed(1)}%` : "—"}
             </td>
           </tr>
@@ -364,26 +364,26 @@ function FiscalCard({ title, subtitle, valor, meta, ref, fonte, metaIndisponivel
   const isPos = v >= 0;
   const pctMeta = m && m !== 0 ? (v / m) * 100 : null;
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-      <div className="text-xs uppercase tracking-wide text-slate-500 font-medium">{title}</div>
-      <div className="text-xs text-slate-400 mb-2">{subtitle}</div>
-      <div className="text-2xl font-bold" style={{ color: isPos ? "#0A2463" : "#dc2626" }}>
+    <div className="bg-[#ffffff0b] rounded-xl border border-[#ffffff1a] p-5 shadow-sm">
+      <div className="text-xs uppercase tracking-wide text-[#8493b3] font-medium">{title}</div>
+      <div className="text-xs text-[#5d6b8c] mb-2">{subtitle}</div>
+      <div className="text-2xl font-bold" style={{ color: isPos ? "#e8eefc" : "#f87171" }}>
         {fmtBRL(v)}
       </div>
       {m != null && (
-        <div className="text-xs text-slate-600 mt-1">
+        <div className="text-xs text-[#9aa8c7] mt-1">
           Meta LDO: <strong>{fmtBRL(m)}</strong>
           {pctMeta != null && (
-            <span className="ml-2 text-slate-500">({pctMeta.toFixed(1)}% atingido)</span>
+            <span className="ml-2 text-[#8493b3]">({pctMeta.toFixed(1)}% atingido)</span>
           )}
         </div>
       )}
       {metaIndisponivel && (
-        <div className="text-[11px] text-slate-500 mt-2 italic leading-snug">
+        <div className="text-[11px] text-[#8493b3] mt-2 italic leading-snug">
           ℹ️ Meta LDO não retornada pela API SICONFI. A coluna existe no template oficial do RREO Anexo 06, mas o Tesouro Nacional não disponibiliza no endpoint público. Apenas o valor realizado fica acessível.
         </div>
       )}
-      <div className="mt-3 text-[10px] uppercase tracking-wide text-slate-400">
+      <div className="mt-3 text-[10px] uppercase tracking-wide text-[#5d6b8c]">
         {fonte} · {ref}
       </div>
     </div>
@@ -431,14 +431,14 @@ function PrefeitoView({
       {/* Hero executivo */}
       <section
         className="rounded-2xl p-8 text-white"
-        style={{ background: "linear-gradient(135deg, #0A2463 0%, #00B4D8 100%)" }}
+        style={{ background: "linear-gradient(135deg, rgba(34,211,238,0.16), rgba(59,130,246,0.12))" }}
       >
         <div className="text-xs uppercase tracking-wider text-cyan-100 mb-2">
           Saúde fiscal · {latest[0]?.exercicio ?? "—"}
         </div>
         <div className="text-4xl font-bold mb-2" style={{ fontFamily: "var(--font-display)" }}>
           {vitorias.length} de {latest.length} indicadores LRF{" "}
-          <span style={{ color: "#00E5A0" }}>em ordem</span>
+          <span style={{ color: "#34d399" }}>em ordem</span>
         </div>
         <div className="text-cyan-100 text-sm">
           {alertas.length === 0
@@ -450,19 +450,19 @@ function PrefeitoView({
       {/* Vitórias */}
       {vitorias.length > 0 && (
         <section>
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 mb-3">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-[#8493b3] mb-3">
             ✅ Vitórias do exercício
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {vitorias.map((v) => (
-              <div key={v.indicador} className="bg-green-50 border border-green-200 rounded-xl p-4">
-                <div className="text-xs uppercase text-green-700 font-medium">
+              <div key={v.indicador} className="bg-[#34d3991f] border border-[#34d39955] rounded-xl p-4">
+                <div className="text-xs uppercase text-[#5fe6b6] font-medium">
                   {LABELS[v.indicador] ?? v.indicador}
                 </div>
-                <div className="text-2xl font-bold text-green-900 mt-1">
+                <div className="text-2xl font-bold text-[#7ff0c2] mt-1">
                   {Number(v.valor).toFixed(1)}%
                 </div>
-                <div className="text-xs text-green-700 mt-1">
+                <div className="text-xs text-[#5fe6b6] mt-1">
                   {MAX_SEMANTIC.has(v.indicador)
                     ? `bem abaixo do teto (${Number(v.limite_legal).toFixed(0)}%)`
                     : `acima do mínimo (${Number(v.limite_legal).toFixed(0)}%)`}
@@ -476,19 +476,19 @@ function PrefeitoView({
       {/* Alertas */}
       {alertas.length > 0 && (
         <section>
-          <h3 className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500 mb-3">
+          <h3 className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-[#8493b3] mb-3">
             <AlertTriangle size={16} strokeWidth={2} aria-hidden /> Pontos de atenção
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {alertas.map((a) => (
-              <div key={a.indicador} className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                <div className="text-xs uppercase text-amber-700 font-medium">
+              <div key={a.indicador} className="bg-[#fbbf241f] border border-[#fbbf2455] rounded-xl p-4">
+                <div className="text-xs uppercase text-[#e0c36a] font-medium">
                   {LABELS[a.indicador] ?? a.indicador}
                 </div>
-                <div className="text-2xl font-bold text-amber-900 mt-1">
+                <div className="text-2xl font-bold text-[#fcd34d] mt-1">
                   {Number(a.valor).toFixed(1)}%
                 </div>
-                <div className="text-xs text-amber-700 mt-1">
+                <div className="text-xs text-[#e0c36a] mt-1">
                   {MAX_SEMANTIC.has(a.indicador)
                     ? `próximo ao teto de ${Number(a.limite_legal).toFixed(0)}%`
                     : `abaixo do mínimo de ${Number(a.limite_legal).toFixed(0)}%`}
@@ -502,26 +502,26 @@ function PrefeitoView({
       {/* Ranking estadual */}
       {ranking.length > 0 && (
         <section>
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 mb-3">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-[#8493b3] mb-3">
             🏆 Como {municipio.nome} se compara aos 645 municípios de SP
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {ranking.map((r) => {
               const top10pct = r.posicao <= r.total * 0.1;
               const bottom10pct = r.posicao > r.total * 0.9;
-              const bg = top10pct ? "bg-green-50 border-green-200"
-                : bottom10pct ? "bg-red-50 border-red-200"
-                : "bg-slate-50 border-slate-200";
+              const bg = top10pct ? "bg-[#34d3991f] border-[#34d39955]"
+                : bottom10pct ? "bg-[#f871711f] border-[#f8717155]"
+                : "bg-[#ffffff0a] border-[#ffffff1a]";
               return (
                 <div key={r.indicador} className={`rounded-xl p-4 border ${bg}`}>
-                  <div className="text-xs uppercase font-medium text-slate-600">
+                  <div className="text-xs uppercase font-medium text-[#9aa8c7]">
                     {LABELS[r.indicador] ?? r.indicador}
                   </div>
-                  <div className="text-3xl font-bold my-1" style={{ color: "#0A2463" }}>
+                  <div className="text-3xl font-bold my-1" style={{ color: "#e8eefc" }}>
                     {r.posicao}º
-                    <span className="text-base text-slate-400 font-normal"> de {r.total}</span>
+                    <span className="text-base text-[#5d6b8c] font-normal"> de {r.total}</span>
                   </div>
-                  <div className="text-xs text-slate-500">
+                  <div className="text-xs text-[#8493b3]">
                     {top10pct && "🥇 entre os 10% melhores"}
                     {bottom10pct && "🚨 entre os 10% piores"}
                     {!top10pct && !bottom10pct && `valor: ${Number(r.valor).toFixed(1)}%`}
@@ -536,7 +536,7 @@ function PrefeitoView({
       {/* Top investimentos */}
       {topAreas.length > 0 && (
         <section>
-          <h3 className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500 mb-3">
+          <h3 className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-[#8493b3] mb-3">
             <Coins size={16} strokeWidth={2} aria-hidden /> Top 5 áreas em investimento ({topAreas[0]?.exercicio})
           </h3>
           <div className="space-y-2">
@@ -545,17 +545,17 @@ function PrefeitoView({
                 ? (Number(a.empenhado) / totalEmpenhado) * 100
                 : 0;
               return (
-                <div key={a.funcao} className="bg-white border border-slate-200 rounded-xl p-4">
+                <div key={a.funcao} className="bg-[#ffffff0b] border border-[#ffffff1a] rounded-xl p-4">
                   <div className="flex items-baseline justify-between mb-2">
-                    <div className="font-semibold text-slate-900">{a.funcao}</div>
-                    <div className="text-sm text-slate-500">
-                      <strong className="text-slate-900">{fmtBRL(a.empenhado)}</strong> · {pct.toFixed(1)}% do orçamento
+                    <div className="font-semibold text-[#e8eefc]">{a.funcao}</div>
+                    <div className="text-sm text-[#8493b3]">
+                      <strong className="text-[#e8eefc]">{fmtBRL(a.empenhado)}</strong> · {pct.toFixed(1)}% do orçamento
                     </div>
                   </div>
-                  <div className="w-full bg-slate-100 h-2 rounded-full">
+                  <div className="w-full bg-[#ffffff12] h-2 rounded-full">
                     <div
                       className="h-2 rounded-full"
-                      style={{ width: `${Math.min(100, pct)}%`, background: "#00B4D8" }}
+                      style={{ width: `${Math.min(100, pct)}%`, background: "#22d3ee" }}
                     />
                   </div>
                 </div>
@@ -607,14 +607,14 @@ function VereadorView({
       <section
         className={`rounded-2xl p-6 border-2 ${
           fora_da_lei.length > 0
-            ? "bg-red-50 border-red-300"
-            : "bg-green-50 border-green-300"
+            ? "bg-[#f871711f] border-[#f8717166]"
+            : "bg-[#34d3991f] border-green-300"
         }`}
       >
-        <div className="text-xs uppercase tracking-wider text-slate-600 mb-2">
+        <div className="text-xs uppercase tracking-wider text-[#9aa8c7] mb-2">
           Cumprimento de Lei (LRF · CF Art. 198 · CF Art. 212)
         </div>
-        <div className="inline-flex items-center gap-2 text-2xl md:text-3xl font-bold mb-1" style={{ color: fora_da_lei.length > 0 ? "#991B1B" : "#065F46" }}>
+        <div className="inline-flex items-center gap-2 text-2xl md:text-3xl font-bold mb-1" style={{ color: fora_da_lei.length > 0 ? "#fda4a4" : "#5fe6b6" }}>
           {fora_da_lei.length === 0 ? (
             <>
               <Check size={28} strokeWidth={2.5} aria-hidden /> Cumprindo todos os limites legais
@@ -626,7 +626,7 @@ function VereadorView({
           )}
         </div>
         {fora_da_lei.length > 0 && (
-          <ul className="mt-3 text-sm text-red-900 space-y-1">
+          <ul className="mt-3 text-sm text-[#fda4a4] space-y-1">
             {fora_da_lei.map((i) => (
               <li key={i.indicador}>
                 <strong>{LABELS[i.indicador] ?? i.indicador}:</strong> {Number(i.valor).toFixed(1)}%
@@ -641,10 +641,10 @@ function VereadorView({
       {/* Tabela meta vs realizado */}
       {areasFimOnly.length > 0 && (
         <section>
-          <h3 className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500 mb-1">
+          <h3 className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-[#8493b3] mb-1">
             <BarChart3 size={16} strokeWidth={2} aria-hidden /> Promessa (LOA) vs Entregue por área-fim
           </h3>
-          <p className="text-xs text-slate-500 mb-4 italic">
+          <p className="text-xs text-[#8493b3] mb-4 italic">
             Esta é a tabela de accountability: o município se comprometeu (Dotação Inicial), e entregou (Liquidado).
             Dados extraídos diretamente do RREO Anexo 02 publicado pelo município no SICONFI.
           </p>
@@ -654,20 +654,20 @@ function VereadorView({
 
       {/* Histórico de publicação */}
       <section>
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 mb-1">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-[#8493b3] mb-1">
           📅 Histórico de publicação ({pctPublicado}% dos {totalDatasets} relatórios obrigatórios)
         </h3>
-        <p className="text-xs text-slate-500 mb-4 italic">
+        <p className="text-xs text-[#8493b3] mb-4 italic">
           Pra cobrar transparência: verifique se o prefeito publicou os relatórios fiscais nos prazos legais.
           Datasets com status "NÃO PUBLICADO" são da responsabilidade da prefeitura.
         </p>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
-          <StatCard label="Publicados" value={pub} color="#065F46" bg="bg-green-50 border-green-200" />
-          <StatCard label="Não publicados" value={ndp} color="#991B1B" bg="bg-red-50 border-red-200" />
-          <StatCard label="Cobertura" value={`${pctPublicado}%`} color="#0A2463" bg="bg-slate-50 border-slate-200" />
+          <StatCard label="Publicados" value={pub} color="#5fe6b6" bg="bg-[#34d3991f] border-[#34d39955]" />
+          <StatCard label="Não publicados" value={ndp} color="#fda4a4" bg="bg-[#f871711f] border-[#f8717155]" />
+          <StatCard label="Cobertura" value={`${pctPublicado}%`} color="#e8eefc" bg="bg-[#ffffff0a] border-[#ffffff1a]" />
         </div>
         <details>
-          <summary className="cursor-pointer text-sm text-slate-600 hover:text-slate-900">
+          <summary className="cursor-pointer text-sm text-[#9aa8c7] hover:text-[#e8eefc]">
             Ver lista completa de {totalDatasets} relatórios
           </summary>
           <div className="mt-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -676,8 +676,8 @@ function VereadorView({
                 key={p.dataset}
                 className={`text-xs px-3 py-2 rounded-lg border flex justify-between ${
                   p.status === "PUBLICADO"
-                    ? "bg-green-50 border-green-200 text-green-900"
-                    : "bg-red-50 border-red-200 text-red-900"
+                    ? "bg-[#34d3991f] border-[#34d39955] text-[#7ff0c2]"
+                    : "bg-[#f871711f] border-[#f8717155] text-[#fda4a4]"
                 }`}
               >
                 <span className="font-mono">{p.dataset}</span>
@@ -689,7 +689,7 @@ function VereadorView({
       </section>
 
       <section>
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 text-sm text-blue-900">
+        <div className="bg-[#3b82f61f] border border-[#3b82f655] rounded-xl p-5 text-sm text-[#9bd8ff]">
           <strong>💡 Como usar pra fiscalizar:</strong>
           <ol className="list-decimal ml-5 mt-2 space-y-1">
             <li>Compare a coluna <strong>Meta</strong> (o que aprovamos na câmara) com <strong>Liquidado</strong> (o que foi gasto)</li>
@@ -721,24 +721,24 @@ function SemDadosAviso({ fonte, descricao }: { fonte: string; descricao: string 
     { cod: 3509502, nome: "Campinas" },
   ];
   return (
-    <div className="bg-amber-50 border border-amber-200 rounded-xl p-5">
+    <div className="bg-[#fbbf241f] border border-[#fbbf2455] rounded-xl p-5">
       <div className="flex items-start gap-3">
         <div className="text-2xl flex-shrink-0">📭</div>
         <div className="flex-1 min-w-0">
-          <h4 className="font-semibold text-amber-900 mb-1 text-sm">
+          <h4 className="font-semibold text-[#fcd34d] mb-1 text-sm">
             Informação não disponível
           </h4>
-          <p className="text-xs text-amber-800 mb-3">{descricao}</p>
-          <div className="text-[10px] uppercase tracking-wide text-amber-700 mb-2 font-semibold">
+          <p className="text-xs text-[#fcd34d] mb-3">{descricao}</p>
+          <div className="text-[10px] uppercase tracking-wide text-[#e0c36a] mb-2 font-semibold">
             Fonte esperada · {fonte}
           </div>
-          <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-amber-200">
-            <span className="text-[10px] text-amber-700 mr-1 uppercase tracking-wide font-semibold self-center">Veja outro município:</span>
+          <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-[#fbbf2455]">
+            <span className="text-[10px] text-[#e0c36a] mr-1 uppercase tracking-wide font-semibold self-center">Veja outro município:</span>
             {exemplos.map((m) => (
               <a
                 key={m.cod}
                 href={`${basePath}/municipio/${m.cod}`}
-                className="px-2 py-1 bg-white border border-amber-300 rounded text-[11px] font-medium text-amber-900 hover:bg-amber-100"
+                className="px-2 py-1 bg-[#ffffff0b] border border-[#fbbf2466] rounded text-[11px] font-medium text-[#fcd34d] hover:bg-[#fbbf2433]"
               >
                 {m.nome} →
               </a>
@@ -753,7 +753,7 @@ function SemDadosAviso({ fonte, descricao }: { fonte: string; descricao: string 
 function StatCard({ label, value, color, bg }: { label: string; value: string | number; color: string; bg: string }) {
   return (
     <div className={`rounded-xl p-4 border ${bg}`}>
-      <div className="text-xs uppercase tracking-wide font-medium text-slate-600">{label}</div>
+      <div className="text-xs uppercase tracking-wide font-medium text-[#9aa8c7]">{label}</div>
       <div className="text-2xl font-bold mt-1" style={{ color }}>{value}</div>
     </div>
   );
@@ -788,24 +788,24 @@ function LrfCard({ indicador }: { indicador: IndicadorLRF }) {
   const isMaxLimit = MAX_SEMANTIC.has(indicador.indicador);
   // Para indicadores "min", >=100% do mínimo é bom (verde); para "max", <80% é bom
   const color = pctLim == null
-    ? "#94A3B8"
+    ? "#5d6b8c"
     : isMaxLimit
       ? lrfColor(pctLim)
-      : pctLim >= 100 ? "#00E5A0" : pctLim >= 80 ? "#00B4D8" : "#f59e0b";
+      : pctLim >= 100 ? "#34d399" : pctLim >= 80 ? "#22d3ee" : "#fbbf24";
 
   const periodoLabel = indicador.periodicidade === "A"
     ? `${indicador.exercicio}`
     : `${indicador.exercicio}/${indicador.periodicidade}${indicador.periodo}`;
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-      <div className="text-xs uppercase tracking-wide text-slate-500 mb-1 font-medium">
+    <div className="bg-[#ffffff0b] rounded-xl border border-[#ffffff1a] p-5 shadow-sm">
+      <div className="text-xs uppercase tracking-wide text-[#8493b3] mb-1 font-medium">
         {LABELS[indicador.indicador] ?? indicador.indicador}
       </div>
-      <div className="text-3xl font-bold" style={{ color: "#0A2463" }}>
+      <div className="text-3xl font-bold" style={{ color: "#e8eefc" }}>
         {valor.toFixed(1)}%
       </div>
-      <div className="text-xs text-slate-500 mb-3">
+      <div className="text-xs text-[#8493b3] mb-3">
         {limite != null ? (
           <>
             {isMaxLimit ? "limite máximo" : "mínimo legal"}: <strong>{limite.toFixed(1)}%</strong>
@@ -815,14 +815,14 @@ function LrfCard({ indicador }: { indicador: IndicadorLRF }) {
         )}
       </div>
       {pctLim != null && (
-        <div className="w-full bg-slate-100 rounded-full h-2">
+        <div className="w-full bg-[#ffffff12] rounded-full h-2">
           <div
             className="h-2 rounded-full transition-all"
             style={{ width: `${Math.min(100, pctLim)}%`, background: color }}
           />
         </div>
       )}
-      <div className="mt-2 text-[10px] text-slate-400 uppercase tracking-wide">
+      <div className="mt-2 text-[10px] text-[#5d6b8c] uppercase tracking-wide">
         {indicador.fonte} · {periodoLabel}
       </div>
     </div>
@@ -831,7 +831,7 @@ function LrfCard({ indicador }: { indicador: IndicadorLRF }) {
 
 function EmptyState({ text }: { text: string }) {
   return (
-    <div className="bg-slate-50 border border-dashed border-slate-300 rounded-xl p-8 text-center text-slate-600 text-sm">
+    <div className="bg-[#ffffff0a] border border-dashed border-[#ffffff26] rounded-xl p-8 text-center text-[#9aa8c7] text-sm">
       {text}
     </div>
   );
@@ -842,7 +842,7 @@ function ExportButton({ format, cod, label }: { format: "pdf" | "xlsx"; cod: num
   return (
     <a
       href={`${basePath}/api/export/${cod}/${format}`}
-      className="px-3 py-2 rounded-lg text-xs font-semibold border border-slate-300 hover:bg-slate-50 text-slate-700"
+      className="px-3 py-2 rounded-lg text-xs font-semibold border border-[#ffffff26] hover:bg-[#ffffff0a] text-[#9aa8c7]"
     >
       {label}
     </a>

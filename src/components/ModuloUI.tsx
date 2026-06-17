@@ -1,5 +1,6 @@
 // Helpers visuais compartilhados pelas páginas de módulo do município.
-// Identidade visual: Radar Fiscal 360 — Gestão Municipal (brandbook oficial).
+// Tema "command-center" dark (portado do mockup conecta) — usado por
+// educação, saúde, dívida, lrf, riscos, contexto, planejamento.
 
 export function Section({
   title,
@@ -11,21 +12,14 @@ export function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section
-      className="p-6 md:p-7 rounded-[22px]"
-      style={{
-        background: "rgba(255,255,255,0.94)",
-        border: "1px solid rgba(11,47,99,0.08)",
-        boxShadow: "0 12px 32px rgba(11,47,99,0.08)",
-      }}
-    >
+    <section className="glass p-6 md:p-7 rounded-[22px]">
       <h2
-        className="font-bold"
+        className="font-extrabold"
         style={{
-          color: "var(--azul)",
+          color: "var(--txt)",
           fontSize: "22px",
           letterSpacing: "-0.03em",
-          borderLeft: "5px solid var(--verde)",
+          borderLeft: "3px solid var(--cyan)",
           paddingLeft: "12px",
           lineHeight: 1.2,
         }}
@@ -33,13 +27,13 @@ export function Section({
         {title}
       </h2>
       {subtitle && (
-        <p className="text-xs md:text-sm mt-2 mb-4" style={{ color: "var(--cinza)" }}>
+        <p className="text-xs md:text-sm mt-2 mb-4" style={{ color: "var(--txt2)" }}>
           {subtitle}
         </p>
       )}
       <div
         className="overflow-hidden mt-3 rounded-2xl"
-        style={{ background: "#fff", border: "1px solid rgba(11,47,99,0.07)" }}
+        style={{ background: "rgba(255,255,255,0.02)", border: "1px solid var(--linha)" }}
       >
         {children}
       </div>
@@ -51,12 +45,13 @@ export function Table({ cols, children }: { cols: string[]; children: React.Reac
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
-        <thead style={{ background: "linear-gradient(135deg, #0b2f63, #0f4f8f)", color: "white" }}>
+        <thead style={{ background: "rgba(255,255,255,0.04)" }}>
           <tr>
             {cols.map((c) => (
               <th
                 key={c}
-                className="text-left px-3 py-2.5 font-semibold uppercase tracking-wide text-xs"
+                className="text-left px-3 py-2.5 font-bold uppercase tracking-wide text-xs"
+                style={{ color: "var(--txt3)", letterSpacing: "0.06em" }}
               >
                 {c}
               </th>
@@ -73,7 +68,7 @@ export function Td({ children, className = "" }: { children: React.ReactNode; cl
   return (
     <td
       className={`px-3 py-2.5 ${className}`}
-      style={{ color: "var(--grafite)", borderBottom: "1px solid rgba(11,47,99,0.06)" }}
+      style={{ color: "var(--txt2)", borderBottom: "1px solid var(--linha)" }}
     >
       {children}
     </td>
@@ -90,27 +85,17 @@ export function Stat({
   sub: string;
 }) {
   return (
-    <div
-      className="p-5 rounded-2xl"
-      style={{
-        background: "white",
-        border: "1px solid rgba(11,47,99,0.09)",
-        boxShadow: "0 8px 22px rgba(11,47,99,0.06)",
-      }}
-    >
-      <div
-        className="text-xs uppercase font-semibold tracking-wider"
-        style={{ color: "var(--cinza)" }}
-      >
+    <div className="glass p-5 rounded-2xl">
+      <div className="text-xs uppercase font-semibold tracking-wider" style={{ color: "var(--txt3)" }}>
         {label}
       </div>
       <div
-        className="text-2xl md:text-3xl font-bold my-1"
-        style={{ color: "var(--azul)", letterSpacing: "-0.03em" }}
+        className="text-2xl md:text-3xl font-extrabold my-1"
+        style={{ color: "var(--cyan)", letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums" }}
       >
         {value}
       </div>
-      <div className="text-xs" style={{ color: "var(--cinza)" }}>
+      <div className="text-xs" style={{ color: "var(--txt3)" }}>
         {sub}
       </div>
     </div>
@@ -119,7 +104,7 @@ export function Stat({
 
 export function Empty({ msg }: { msg: string }) {
   return (
-    <div className="px-4 py-8 text-sm italic text-center" style={{ color: "var(--cinza)" }}>
+    <div className="px-4 py-8 text-sm italic text-center" style={{ color: "var(--txt3)" }}>
       {msg}
     </div>
   );
@@ -130,17 +115,17 @@ export function Placeholder({ titulo, descricao }: { titulo: string; descricao: 
     <div
       className="p-6 m-3 rounded-2xl"
       style={{
-        background: "linear-gradient(135deg, rgba(11,47,99,0.04), rgba(78,181,31,0.05))",
-        border: "1px dashed rgba(11,47,99,0.2)",
+        background: "rgba(34,211,238,0.05)",
+        border: "1px dashed var(--linha2)",
       }}
     >
       <div
         className="text-xs uppercase font-bold tracking-wider"
-        style={{ color: "var(--verde-2)", letterSpacing: "0.08em" }}
+        style={{ color: "var(--cyan)", letterSpacing: "0.08em" }}
       >
         {titulo}
       </div>
-      <div className="text-sm mt-2" style={{ color: "var(--cinza)" }}>
+      <div className="text-sm mt-2" style={{ color: "var(--txt2)" }}>
         {descricao}
       </div>
     </div>
@@ -154,8 +139,9 @@ export function Eyebrow({ children, small }: { children: React.ReactNode; small?
         small ? "text-[11px] px-2.5 py-1" : "text-xs px-3 py-1.5"
       }`}
       style={{
-        background: "rgba(78,181,31,0.13)",
-        color: "var(--verde-2)",
+        background: "rgba(34,211,238,0.13)",
+        color: "var(--cyan)",
+        border: "1px solid rgba(34,211,238,0.3)",
         letterSpacing: "0.08em",
       }}
     >
@@ -202,13 +188,13 @@ export function SemaforoMin({
   valor: string | number | null;
   limite: string | number | null;
 }) {
-  if (valor === null || limite === null) return <span style={{ color: "var(--cinza)" }}>—</span>;
+  if (valor === null || limite === null) return <span style={{ color: "var(--txt3)" }}>—</span>;
   const v = Number(valor),
     L = Number(limite);
-  if (!Number.isFinite(v) || !Number.isFinite(L)) return <span style={{ color: "var(--cinza)" }}>—</span>;
-  if (v < L) return <Badge color="#dc2626">Abaixo do mínimo</Badge>;
-  if (v < L * 1.05) return <Badge color="#d97706">No limite</Badge>;
-  return <Badge color="var(--verde-2)">Conforme</Badge>;
+  if (!Number.isFinite(v) || !Number.isFinite(L)) return <span style={{ color: "var(--txt3)" }}>—</span>;
+  if (v < L) return <Badge color="#f87171">Abaixo do mínimo</Badge>;
+  if (v < L * 1.05) return <Badge color="#fbbf24">No limite</Badge>;
+  return <Badge color="#34d399">Conforme</Badge>;
 }
 
 // Semáforo para indicadores com máximo legal (pessoal 60%, dívida 120% etc.)
@@ -219,21 +205,21 @@ export function SemaforoMax({
   valor: string | number | null;
   limite: string | number | null;
 }) {
-  if (valor === null || limite === null) return <span style={{ color: "var(--cinza)" }}>—</span>;
+  if (valor === null || limite === null) return <span style={{ color: "var(--txt3)" }}>—</span>;
   const v = Number(valor),
     L = Number(limite);
-  if (!Number.isFinite(v) || !Number.isFinite(L)) return <span style={{ color: "var(--cinza)" }}>—</span>;
-  if (v > L) return <Badge color="#dc2626">Acima do limite</Badge>;
-  if (v > L * 0.95) return <Badge color="#d97706">Prudencial</Badge>;
-  if (v > L * 0.9) return <Badge color="var(--azul-2)">Atenção</Badge>;
-  return <Badge color="var(--verde-2)">Conforme</Badge>;
+  if (!Number.isFinite(v) || !Number.isFinite(L)) return <span style={{ color: "var(--txt3)" }}>—</span>;
+  if (v > L) return <Badge color="#f87171">Acima do limite</Badge>;
+  if (v > L * 0.95) return <Badge color="#f87171">Prudencial</Badge>;
+  if (v > L * 0.9) return <Badge color="#fbbf24">Atenção</Badge>;
+  return <Badge color="#34d399">Conforme</Badge>;
 }
 
 function Badge({ color, children }: { color: string; children: React.ReactNode }) {
   return (
     <span
       className="px-2 py-0.5 rounded-full text-xs font-bold"
-      style={{ color, background: `${color}1f` }}
+      style={{ color, background: `${color}22`, border: `1px solid ${color}55` }}
     >
       {children}
     </span>

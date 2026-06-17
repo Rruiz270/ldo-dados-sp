@@ -157,7 +157,7 @@ export async function PainelPreventivo({ codIbge, basePath, podeCriarProvidencia
           ) : (
             <ul>
               {alertasTop.map((a) => (
-                <li key={a.id} className="px-4 py-3 border-b border-slate-100 last:border-0 flex items-start gap-3">
+                <li key={a.id} className="px-4 py-3 border-b border-[#ffffff14] last:border-0 flex items-start gap-3">
                   <NivelBadge nivel={a.nivel} />
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-semibold" style={{ color: "var(--azul)" }}>
@@ -207,15 +207,15 @@ export async function PainelPreventivo({ codIbge, basePath, podeCriarProvidencia
                         {CATEGORIA_LABELS[c.categoria] ?? c.categoria}
                       </span>
                       <span style={{ color: "var(--cinza)" }}>
-                        {c.n} {c.criticos > 0 && <strong style={{ color: "#dc2626" }}>· {c.criticos} crítico(s)</strong>}
+                        {c.n} {c.criticos > 0 && <strong style={{ color: "#f87171" }}>· {c.criticos} crítico(s)</strong>}
                       </span>
                     </div>
-                    <div className="h-2 rounded-full overflow-hidden" style={{ background: "rgba(11,47,99,0.08)" }}>
+                    <div className="h-2 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.08)" }}>
                       <div
                         className="h-full rounded-full"
                         style={{
                           width: `${pct}%`,
-                          background: c.criticos > 0 ? "#dc2626" : "var(--azul-2)",
+                          background: c.criticos > 0 ? "#f87171" : "var(--azul-2)",
                         }}
                       />
                     </div>
@@ -245,7 +245,7 @@ export async function PainelPreventivo({ codIbge, basePath, podeCriarProvidencia
           ) : (
             <ul>
               {providencias.map((p) => (
-                <li key={p.id} className="px-4 py-3 border-b border-slate-100 last:border-0">
+                <li key={p.id} className="px-4 py-3 border-b border-[#ffffff14] last:border-0">
                   <div className="text-sm font-semibold" style={{ color: "var(--azul)" }}>{p.descricao}</div>
                   <div className="text-xs mt-1 flex items-center gap-3" style={{ color: "var(--cinza)" }}>
                     <span className="capitalize font-semibold">{p.status.replace(/_/g, " ")}</span>
@@ -289,7 +289,7 @@ export async function PainelPreventivo({ codIbge, basePath, podeCriarProvidencia
 // -----------------------------------------------------------------
 
 const NIVEL_CONFIG: Record<string, { cor: string; bg: string; Icon: React.ElementType; label: string }> = {
-  critico: { cor: "#dc2626", bg: "rgba(220,38,38,0.13)", Icon: AlertCircle, label: "Crítico" },
+  critico: { cor: "#f87171", bg: "rgba(220,38,38,0.13)", Icon: AlertCircle, label: "Crítico" },
   atencao: { cor: "#d97706", bg: "rgba(217,119,6,0.13)", Icon: AlertTriangle, label: "Atenção" },
   informativo: { cor: "#0f4f8f", bg: "rgba(15,79,143,0.13)", Icon: Info, label: "Informativo" },
   regular: { cor: "#1d8a43", bg: "rgba(29,138,67,0.13)", Icon: Check, label: "Regular" },
@@ -313,8 +313,8 @@ function SemaforoCard({
       className="p-4 rounded-2xl"
       style={{
         background: "white",
-        border: "1px solid rgba(11,47,99,0.09)",
-        boxShadow: "0 8px 22px rgba(11,47,99,0.06)",
+        border: "1px solid rgba(255,255,255,0.09)",
+        boxShadow: "0 8px 22px rgba(255,255,255,0.06)",
       }}
     >
       <div className="flex items-center justify-between mb-2">
@@ -370,7 +370,7 @@ function CategoriaChip({ categoria }: { categoria: string }) {
     <span
       className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
       style={{
-        background: "rgba(11,47,99,0.08)",
+        background: "rgba(255,255,255,0.08)",
         color: "var(--azul)",
         letterSpacing: "0.05em",
       }}
@@ -384,7 +384,7 @@ function ItemCadastro({ label, valor }: { label: string; valor: number }) {
   return (
     <div
       className="p-3 rounded-xl text-center"
-      style={{ background: "rgba(11,47,99,0.04)", border: "1px solid rgba(11,47,99,0.06)" }}
+      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}
     >
       <div className="text-2xl font-bold" style={{ color: valor > 0 ? "var(--verde-2)" : "var(--cinza)" }}>
         {valor}
@@ -425,13 +425,13 @@ function CtaModulo({
     <div
       className="rounded-2xl p-5"
       style={{
-        background: "linear-gradient(135deg, rgba(11,47,99,0.04), rgba(78,181,31,0.05))",
-        border: "1px dashed rgba(11,47,99,0.18)",
+        background: "linear-gradient(135deg, rgba(255,255,255,0.04), rgba(52,211,153,0.05))",
+        border: "1px dashed rgba(255,255,255,0.18)",
       }}
     >
       <div
         className="inline-flex items-center justify-center w-10 h-10 rounded-xl mb-3"
-        style={{ background: "rgba(11,47,99,0.08)", color: "var(--azul-2)" }}
+        style={{ background: "rgba(255,255,255,0.08)", color: "var(--azul-2)" }}
       >
         {icone}
       </div>

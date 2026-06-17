@@ -78,13 +78,13 @@ export default async function SaudePage({ params }: PageProps) {
         ) : (
           <Table cols={["Exercício", "Período", "Aplicado", "Limite legal", "% do limite", "Fonte"]}>
             {lrfSaude.map((r, i) => (
-              <tr key={i} className="border-t border-slate-100">
+              <tr key={i} className="border-t border-[#ffffff14]">
                 <Td>{r.exercicio}</Td>
                 <Td>{r.periodo}</Td>
                 <Td>{fmtPct(r.valor)}</Td>
                 <Td>{r.limite_legal ?? "—"}%</Td>
                 <Td>{r.pct_do_limite ? `${Number(r.pct_do_limite).toFixed(1)}%` : "—"}</Td>
-                <Td className="text-slate-500">{r.fonte}</Td>
+                <Td className="text-[#8493b3]">{r.fonte}</Td>
               </tr>
             ))}
           </Table>
@@ -98,13 +98,13 @@ export default async function SaudePage({ params }: PageProps) {
         ) : (
           <Table cols={["Exercício", "Bim.", "Indicador", "Valor", "Limite", "Detalhe SIOPS"]}>
             {siops.map((r, i) => (
-              <tr key={i} className="border-t border-slate-100">
+              <tr key={i} className="border-t border-[#ffffff14]">
                 <Td>{r.exercicio}</Td>
                 <Td>{r.periodo}</Td>
                 <Td className="font-medium">{labelSiops(r.indicador)}</Td>
                 <Td>{fmtValor(r.valor, r.indicador)}</Td>
                 <Td>{r.limite_legal ? `${r.limite_legal}%` : "—"}</Td>
-                <Td className="text-slate-500 text-xs">{r.fonte_detalhe}</Td>
+                <Td className="text-[#8493b3] text-xs">{r.fonte_detalhe}</Td>
               </tr>
             ))}
           </Table>
@@ -117,9 +117,9 @@ export default async function SaudePage({ params }: PageProps) {
 function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
     <section>
-      <h2 className="text-lg md:text-xl font-semibold mb-1" style={{ color: "#0A2463" }}>{title}</h2>
-      {subtitle && <p className="text-xs text-slate-600 mb-3">{subtitle}</p>}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">{children}</div>
+      <h2 className="text-lg md:text-xl font-semibold mb-1" style={{ color: "#e8eefc" }}>{title}</h2>
+      {subtitle && <p className="text-xs text-[#9aa8c7] mb-3">{subtitle}</p>}
+      <div className="bg-[#ffffff0b] rounded-xl border border-[#ffffff1a] overflow-hidden">{children}</div>
     </section>
   );
 }
@@ -128,7 +128,7 @@ function Table({ cols, children }: { cols: string[]; children: React.ReactNode }
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
-        <thead className="bg-slate-50 text-slate-600">
+        <thead className="bg-[#ffffff0a] text-[#9aa8c7]">
           <tr>{cols.map(c => <th key={c} className="text-left px-3 py-2 font-medium uppercase tracking-wide text-xs">{c}</th>)}</tr>
         </thead>
         <tbody>{children}</tbody>
@@ -138,21 +138,21 @@ function Table({ cols, children }: { cols: string[]; children: React.ReactNode }
 }
 
 function Td({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <td className={`px-3 py-2 text-slate-800 ${className}`}>{children}</td>;
+  return <td className={`px-3 py-2 text-[#dbe3f5] ${className}`}>{children}</td>;
 }
 
 function Stat({ label, value, sub }: { label: string; value: React.ReactNode; sub: string }) {
   return (
-    <div className="bg-slate-50 rounded-lg p-4">
-      <div className="text-xs uppercase tracking-wide text-slate-500 font-medium">{label}</div>
-      <div className="text-2xl font-bold my-1" style={{ color: "#0A2463" }}>{value}</div>
-      <div className="text-xs text-slate-500">{sub}</div>
+    <div className="bg-[#ffffff0a] rounded-lg p-4">
+      <div className="text-xs uppercase tracking-wide text-[#8493b3] font-medium">{label}</div>
+      <div className="text-2xl font-bold my-1" style={{ color: "#e8eefc" }}>{value}</div>
+      <div className="text-xs text-[#8493b3]">{sub}</div>
     </div>
   );
 }
 
 function Empty({ msg }: { msg: string }) {
-  return <div className="px-3 py-6 text-sm text-slate-500 italic">{msg}</div>;
+  return <div className="px-3 py-6 text-sm text-[#8493b3] italic">{msg}</div>;
 }
 
 function fmtPct(v: string | null): string {
@@ -185,8 +185,8 @@ function labelSiops(ind: string): string {
 
 function SemaforoMin({ valor, limite }: { valor: string; limite: string }) {
   const v = Number(valor), L = Number(limite);
-  if (!Number.isFinite(v) || !Number.isFinite(L)) return <span className="text-slate-400">—</span>;
+  if (!Number.isFinite(v) || !Number.isFinite(L)) return <span className="text-[#5d6b8c]">—</span>;
   if (v < L) return <span className="text-red-700 font-medium">Abaixo do mínimo</span>;
-  if (v < L * 1.05) return <span className="text-amber-700 font-medium">No limite</span>;
-  return <span className="text-green-700 font-medium">Conforme</span>;
+  if (v < L * 1.05) return <span className="text-[#e0c36a] font-medium">No limite</span>;
+  return <span className="text-[#5fe6b6] font-medium">Conforme</span>;
 }

@@ -13,6 +13,7 @@ import {
   Building2,
   Settings2,
   Upload,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 
@@ -31,6 +32,7 @@ const MODULOS: ModuloItem[] = [
   { slug: "riscos",        label: "Riscos fiscais",           Icon: AlertTriangle, secao: "Análise" },
 
   { slug: "lrf",           label: "Limites da LRF",            Icon: Scale,          secao: "Indicadores" },
+  { slug: "pessoal",       label: "Demonstrativo de Pessoal",  Icon: Users,          secao: "Indicadores" },
   { slug: "educacao",      label: "Educação e Fundeb",         Icon: GraduationCap,  secao: "Indicadores" },
   { slug: "saude",         label: "Saúde",                     Icon: Stethoscope,    secao: "Indicadores" },
   { slug: "divida",        label: "Dívida e caixa",            Icon: Wallet,         secao: "Indicadores" },
@@ -41,6 +43,12 @@ const MODULOS: ModuloItem[] = [
   { slug: "parametros",    label: "Parâmetros de alerta",      Icon: Settings2,      secao: "Gestão" },
   { slug: "importar",      label: "Importar dados",            Icon: Upload,         secao: "Gestão" },
 ];
+
+const SECAO_COR: Record<string, string> = {
+  Análise: "var(--grad-2)",
+  Indicadores: "var(--grad-1)",
+  Gestão: "linear-gradient(135deg,#a78bfa,#f472b6)",
+};
 
 export default async function MunicipioLayout({ children, params }: LayoutProps) {
   const { cod } = await params;
@@ -59,10 +67,10 @@ export default async function MunicipioLayout({ children, params }: LayoutProps)
   } catch {}
 
   return (
-    <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8">
+    <div className="max-w-[1280px] mx-auto px-4 md:px-8 py-6 md:py-9">
       <div className="mb-6 flex flex-col gap-3">
-        <div className="text-xs uppercase font-semibold tracking-widest" style={{ color: "var(--cinza)" }}>
-          <a href={`${basePath}/`} className="hover:underline" style={{ color: "var(--azul)" }}>
+        <div className="text-xs uppercase font-semibold tracking-widest" style={{ color: "var(--txt3)" }}>
+          <a href={`${basePath}/`} className="hover:underline" style={{ color: "var(--cyan)" }}>
             Município
           </a>
           <span className="mx-2">/</span>
@@ -70,12 +78,15 @@ export default async function MunicipioLayout({ children, params }: LayoutProps)
         </div>
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
           <h1
-            className="font-bold"
+            className="font-extrabold"
             style={{
-              color: "var(--azul)",
               fontSize: "clamp(28px, 4vw, 44px)",
               letterSpacing: "-0.04em",
               lineHeight: 1.05,
+              background: "linear-gradient(90deg,#fff,#9bd8ff)",
+              WebkitBackgroundClip: "text",
+              backgroundClip: "text",
+              color: "transparent",
             }}
           >
             {nome || `Município ${cod}`}
@@ -84,8 +95,9 @@ export default async function MunicipioLayout({ children, params }: LayoutProps)
             <span
               className="px-3 py-1.5 rounded-full text-xs font-bold inline-block w-fit"
               style={{
-                background: "rgba(78,181,31,0.13)",
-                color: "var(--verde-2)",
+                background: "rgba(52,211,153,0.13)",
+                color: "var(--verde)",
+                border: "1px solid rgba(52,211,153,0.3)",
                 letterSpacing: "0.06em",
               }}
             >
@@ -96,21 +108,15 @@ export default async function MunicipioLayout({ children, params }: LayoutProps)
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-5 md:gap-7">
-        <aside
-          className="md:sticky md:top-20 md:self-start md:max-h-[calc(100vh-100px)] md:overflow-auto rounded-[22px] p-3 md:p-4"
-          style={{
-            background: "rgba(255,255,255,0.86)",
-            border: "1px solid rgba(11,47,99,0.08)",
-            boxShadow: "0 18px 45px rgba(11,47,99,0.12)",
-          }}
-        >
+        <aside className="md:sticky md:top-20 md:self-start md:max-h-[calc(100vh-100px)] md:overflow-auto rounded-[22px] p-3 md:p-4 glass">
           <nav className="flex md:flex-col gap-0.5 overflow-x-auto md:overflow-visible">
             {(["Análise", "Indicadores", "Gestão"] as const).map((secao) => (
               <div key={secao} className="md:mb-3">
                 <h3
-                  className="hidden md:block font-bold uppercase text-[10px] tracking-widest mt-3 mb-2 px-2"
-                  style={{ color: "var(--cinza)", letterSpacing: "0.1em" }}
+                  className="hidden md:flex items-center gap-2 font-bold uppercase text-[10px] tracking-widest mt-3 mb-2 px-2"
+                  style={{ color: "var(--txt3)", letterSpacing: "0.1em" }}
                 >
+                  <span style={{ width: 16, height: 3, borderRadius: 2, background: SECAO_COR[secao] }} />
                   {secao}
                 </h3>
                 {MODULOS.filter((m) => m.secao === secao).map(({ slug, label, Icon }) => {
@@ -121,10 +127,10 @@ export default async function MunicipioLayout({ children, params }: LayoutProps)
                     <a
                       key={slug || "root"}
                       href={href}
-                      className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-semibold whitespace-nowrap hover:bg-slate-100 transition-colors"
-                      style={{ color: "var(--grafite)" }}
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-colors"
+                      style={{ color: "var(--txt2)" }}
                     >
-                      <Icon size={17} strokeWidth={1.75} style={{ color: "var(--azul-2)" }} aria-hidden />
+                      <Icon size={17} strokeWidth={1.75} style={{ color: "var(--cyan)" }} aria-hidden />
                       <span>{label}</span>
                     </a>
                   );

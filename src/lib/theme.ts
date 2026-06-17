@@ -36,13 +36,53 @@ export const brandLegacy = {
   green: brand.verde,
 };
 
-// Semáforo LRF — situação fiscal por % do limite consumido
-export function lrfColor(pctOfLimit: number): string {
-  if (pctOfLimit >= 95) return "#dc2626"; // vermelho — estouro iminente
-  if (pctOfLimit >= 90) return "#f59e0b"; // amarelo — alerta
-  if (pctOfLimit >= 80) return brand.azul2; // azul — atenção
-  return brand.verde; // verde — folga
+// ============================================================
+// Semáforo fiscal — § 8.1 do doc de módulos. Quatro faixas por
+// % do limite legal consumido (para indicadores de LIMITE MÁXIMO:
+// pessoal, dívida, op. crédito, ARO, garantias).
+//   Verde    < 80%   → situação confortável
+//   Azul     80-90%  → acompanhamento preventivo
+//   Amarelo  90-95%  → atenção elevada (limite de ALERTA da LRF, art. 59)
+//   Vermelho ≥ 95%   → risco alto (limite PRUDENCIAL da LRF, art. 22)
+// Cores na paleta dark (command-center).
+// ============================================================
+export const SEMAFORO = {
+  verde: "#34d399",
+  azul: "#3b82f6",
+  amarelo: "#fbbf24",
+  vermelho: "#f87171",
+  neutro: "#5d6b8c",
+} as const;
+
+export type FaixaSemaforo = "verde" | "azul" | "amarelo" | "vermelho";
+
+export function faixaLimiteMaximo(pctOfLimit: number): FaixaSemaforo {
+  if (pctOfLimit >= 95) return "vermelho";
+  if (pctOfLimit >= 90) return "amarelo";
+  if (pctOfLimit >= 80) return "azul";
+  return "verde";
 }
+
+export function lrfColor(pctOfLimit: number): string {
+  return SEMAFORO[faixaLimiteMaximo(pctOfLimit)];
+}
+
+// Pisos mínimos (educação, saúde, FUNDEB profissionais): a leitura por
+// "% do limite" se inverte. § 8.1 "Atenção metodológica": deixar claro se
+// está ACIMA ou ABAIXO do piso. pctOfFloor = valor / piso * 100.
+export function pisoColor(pctOfFloor: number): string {
+  if (pctOfFloor >= 100) return SEMAFORO.verde; // cumpre o piso
+  if (pctOfFloor >= 95) return SEMAFORO.amarelo; // quase no piso
+  return SEMAFORO.vermelho; // descumprimento constitucional
+}
+
+// Legenda do semáforo para exibição (Biblioteca Legal / cards).
+export const SEMAFORO_LEGENDA: Array<{ faixa: string; cor: string; leitura: string }> = [
+  { faixa: "< 80% do limite", cor: SEMAFORO.verde, leitura: "Situação confortável em relação ao limite calculado." },
+  { faixa: "≥ 80% e < 90%", cor: SEMAFORO.azul, leitura: "Acompanhamento preventivo." },
+  { faixa: "≥ 90% e < 95%", cor: SEMAFORO.amarelo, leitura: "Atenção elevada — limite de alerta da LRF (art. 59)." },
+  { faixa: "≥ 95%", cor: SEMAFORO.vermelho, leitura: "Risco alto — limite prudencial da LRF (art. 22)." },
+];
 
 // Cor por nível de risco/criticidade
 export const nivelColor: Record<string, string> = {

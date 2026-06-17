@@ -220,12 +220,12 @@ export default async function MunicipioPage({ params }: PageProps) {
       {/* Chips de status — header de identidade já vem do layout */}
       <div className="flex flex-wrap items-center gap-2 text-xs">
         {municipio.regiao && (
-          <span className="px-2.5 py-1 rounded-full font-semibold" style={{ background: "#fff", border: "1px solid rgba(11,47,99,0.10)", color: "var(--cinza)" }}>
+          <span className="px-2.5 py-1 rounded-full font-semibold" style={{ background: "var(--card2)", border: "1px solid var(--linha)", color: "var(--txt2)" }}>
             {municipio.regiao}
           </span>
         )}
         {municipio.faixa_pop && (
-          <span className="px-2.5 py-1 rounded-full font-semibold" style={{ background: "#fff", border: "1px solid rgba(11,47,99,0.10)", color: "var(--cinza)" }}>
+          <span className="px-2.5 py-1 rounded-full font-semibold" style={{ background: "var(--card2)", border: "1px solid var(--linha)", color: "var(--txt2)" }}>
             Faixa: {municipio.faixa_pop}
           </span>
         )}
@@ -233,8 +233,9 @@ export default async function MunicipioPage({ params }: PageProps) {
           <span
             className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-bold"
             style={{
-              background: pctPubli >= 80 ? "rgba(78,181,31,0.13)" : pctPubli >= 50 ? "rgba(217,119,6,0.13)" : "rgba(220,38,38,0.13)",
-              color: pctPubli >= 80 ? "var(--verde-2)" : pctPubli >= 50 ? "#d97706" : "#dc2626",
+              background: pctPubli >= 80 ? "rgba(52,211,153,0.13)" : pctPubli >= 50 ? "rgba(251,191,36,0.13)" : "rgba(248,113,113,0.13)",
+              color: pctPubli >= 80 ? "var(--verde)" : pctPubli >= 50 ? "var(--ambar)" : "var(--verm)",
+              border: "1px solid var(--linha)",
             }}
             title={`${pubCount} de ${totalPub} relatórios fiscais obrigatórios publicados`}
           >
@@ -242,7 +243,7 @@ export default async function MunicipioPage({ params }: PageProps) {
           </span>
         )}
         {ndpCount > 0 && (
-          <span className="text-xs" style={{ color: "#dc2626" }}>
+          <span className="text-xs" style={{ color: "var(--verm)" }}>
             {ndpCount} relatório(s) não publicados
           </span>
         )}
@@ -251,14 +252,14 @@ export default async function MunicipioPage({ params }: PageProps) {
       {/* Disclaimer de período defasado */}
       {periodoInfo.proxAno && periodoInfo.munisComAnoMaisRecente > 50 && (
         <div
-          className="p-4 rounded-2xl text-sm flex items-start gap-3"
-          style={{ background: "linear-gradient(135deg, rgba(11,47,99,0.04), rgba(78,181,31,0.05))", border: "1px solid rgba(11,47,99,0.10)" }}
+          className="p-4 rounded-2xl text-sm flex items-start gap-3 glass"
+          style={{ borderLeft: "3px solid var(--cyan)" }}
         >
-          <div style={{ color: "var(--azul-2)" }}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-          <div className="flex-1" style={{ color: "var(--azul)" }}>
-            <strong>{municipio.nome}</strong> ainda não publicou RREO de <strong>{periodoInfo.proxAno}</strong>.
-            Dados exibidos são do exercício <strong>{periodoInfo.ano}/B{periodoInfo.bim}</strong>{" "}
-            (último publicado). Outros <strong>{periodoInfo.munisComAnoMaisRecente}</strong> municípios paulistas já publicaram dados de {periodoInfo.proxAno}.
+          <div style={{ color: "var(--cyan)" }}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+          <div className="flex-1" style={{ color: "var(--txt2)" }}>
+            <strong style={{ color: "var(--txt)" }}>{municipio.nome}</strong> ainda não publicou RREO de <strong style={{ color: "var(--txt)" }}>{periodoInfo.proxAno}</strong>.
+            Dados exibidos são do exercício <strong style={{ color: "var(--txt)" }}>{periodoInfo.ano}/B{periodoInfo.bim}</strong>{" "}
+            (último publicado). Outros <strong style={{ color: "var(--txt)" }}>{periodoInfo.munisComAnoMaisRecente}</strong> municípios paulistas já publicaram dados de {periodoInfo.proxAno}.
           </div>
         </div>
       )}

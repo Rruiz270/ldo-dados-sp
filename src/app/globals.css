@@ -1,22 +1,182 @@
 @import "tailwindcss";
 
+/* ============================================================
+   Radar 360 — tema "centro de comando" (dark premium)
+   Portado do mockup conecta-são-josé. Mantém a identidade i10
+   (azul/verde) como acentos sobre o canvas escuro.
+   ============================================================ */
 @theme {
-  --color-navy: #0A2463;
-  --color-navy-dark: #061840;
-  --color-navy-light: #1a3a7a;
-  --color-cyan: #00B4D8;
-  --color-cyan-light: #48CAE4;
-  --color-cyan-pale: #ADE8F4;
-  --color-green: #00E5A0;
-  --color-green-dark: #00C48A;
-  --color-green-pale: #B7F5E0;
+  /* fundos */
+  --color-bg0: #05080f;
+  --color-bg1: #0a0f1d;
+  --color-bg2: #0e1628;
+  /* superfícies (glass) */
+  --color-card: rgba(255, 255, 255, 0.045);
+  --color-card2: rgba(255, 255, 255, 0.07);
+  --color-linha: rgba(255, 255, 255, 0.09);
+  --color-linha2: rgba(255, 255, 255, 0.16);
+  /* texto */
+  --color-txt: #e8eefc;
+  --color-txt2: #9aa8c7;
+  --color-txt3: #5d6b8c;
+  /* acentos (i10 + paleta conecta) */
+  --color-cyan: #22d3ee;
+  --color-azul: #3b82f6;
+  --color-verde: #34d399;
+  --color-ambar: #fbbf24;
+  --color-verm: #f87171;
+  --color-roxo: #a78bfa;
+  --color-rosa: #f472b6;
+  --color-ouro: #fcd34d;
+
   --font-sans: "Inter", system-ui, sans-serif;
-  --font-display: "Source Serif 4", Georgia, serif;
+  --font-display: "Inter", system-ui, sans-serif;
 }
 
-html, body {
-  background: #F8FAFC;
-  color: #0F172A;
+:root {
+  --bg0: #05080f;
+  --bg1: #0a0f1d;
+  --bg2: #0e1628;
+  --card: rgba(255, 255, 255, 0.045);
+  --card2: rgba(255, 255, 255, 0.07);
+  --linha: rgba(255, 255, 255, 0.09);
+  --linha2: rgba(255, 255, 255, 0.16);
+  --txt: #e8eefc;
+  --txt2: #9aa8c7;
+  --txt3: #5d6b8c;
+  --cyan: #22d3ee;
+  --azul: #3b82f6;
+  --verde: #34d399;
+  --ambar: #fbbf24;
+  --verm: #f87171;
+  --roxo: #a78bfa;
+  --ouro: #fcd34d;
+  --glow-c: rgba(34, 211, 238, 0.35);
+  --glow-v: rgba(52, 211, 153, 0.3);
+  --glow-a: rgba(251, 191, 36, 0.3);
+  /* gradientes dos pilares */
+  --grad-1: linear-gradient(135deg, #3b82f6, #22d3ee);
+  --grad-2: linear-gradient(135deg, #34d399, #22d3ee);
+  --grad-3: linear-gradient(135deg, #fbbf24, #f472b6);
+  --grad-marca: linear-gradient(135deg, #3b82f6, #34d399);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+html,
+body {
+  background: var(--bg0);
+  color: var(--txt);
   font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: rgba(34, 211, 238, 0.3);
+}
+
+/* ===== fundo: estrelas (canvas) + aurora (orbs em blur) ===== */
+canvas#stars {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.aurora {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.aurora .orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(110px);
+  opacity: 0.16;
+  animation: drift 24s ease-in-out infinite alternate;
+}
+.aurora .o1 {
+  width: 560px;
+  height: 560px;
+  background: #1456c4;
+  top: -180px;
+  left: -120px;
+}
+.aurora .o2 {
+  width: 480px;
+  height: 480px;
+  background: #0e8f8a;
+  bottom: -160px;
+  right: -100px;
+  animation-delay: -8s;
+}
+.aurora .o3 {
+  width: 380px;
+  height: 380px;
+  background: #7c3aed;
+  top: 30%;
+  left: 55%;
+  animation-delay: -16s;
+}
+@keyframes drift {
+  from {
+    transform: translate(0, 0) scale(1);
+  }
+  to {
+    transform: translate(70px, 40px) scale(1.15);
+  }
+}
+
+/* ===== utilitários de superfície (glassmorphism) ===== */
+.glass {
+  background: var(--card);
+  border: 1px solid var(--linha);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+}
+.glass-strong {
+  background: rgba(8, 12, 24, 0.82);
+  backdrop-filter: blur(18px);
+  border: 1px solid var(--linha);
+}
+
+/* animações reaproveitadas do mockup */
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.75);
+  }
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--verde);
+  box-shadow: 0 0 10px var(--verde);
+  animation: pulse 1.4s infinite;
 }
